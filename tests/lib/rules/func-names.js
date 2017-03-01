@@ -9,19 +9,19 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/func-names"),
+const rule = require("../../../lib/rules/func-names"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("func-names", rule, {
     valid: [
         "Foo.prototype.bar = function bar(){};",
-        { code: "Foo.prototype.bar = () => {}", parserOptions: { ecmaVersion: 6 }},
+        { code: "Foo.prototype.bar = () => {}", parserOptions: { ecmaVersion: 6 } },
         "function foo(){}",
         "function test(d, e, f) {}",
         "new function bar(){}",
@@ -43,11 +43,65 @@ ruleTester.run("func-names", rule, {
             options: ["always"]
         },
         {
+            code: "class A { constructor(){} foo(){} get bar(){} set baz(value){} static qux(){}}",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
+            code: "({ foo() {} });",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
+            code: "var foo = function(){};",
+            options: ["as-needed"]
+        },
+        {
+            code: "({foo: function(){}});",
+            options: ["as-needed"]
+        },
+        {
+            code: "(foo = function(){});",
+            options: ["as-needed"]
+        },
+        {
+            code: "export default (function(){});",
+            options: ["as-needed"],
+            parserOptions: {
+                ecmaVersion: 6,
+                sourceType: "module"
+            }
+        },
+        {
+            code: "({foo = function(){}} = {});",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
+            code: "({key: foo = function(){}} = {});",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
+            code: "[foo = function(){}] = [];",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
+            code: "function fn(foo = function(){}) {}",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 }
+        },
+        {
             code: "function foo() {}",
             options: ["never"]
         },
         {
             code: "var a = function() {};",
+            options: ["never"]
+        },
+        {
+            code: "var a = function foo() { foo(); };",
             options: ["never"]
         },
         {
@@ -74,26 +128,80 @@ ruleTester.run("func-names", rule, {
         }
     ],
     invalid: [
-        { code: "Foo.prototype.bar = function() {};", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
-        { code: "(function(){}())", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
-        { code: "f(function(){})", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
-        { code: "var a = new Date(function() {});", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
-        { code: "var test = function(d, e, f) {};", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
-        { code: "new function() {}", errors: [{ message: "Missing function expression name.", type: "FunctionExpression"}] },
         {
-            code: "var x = function named() {};",
-            options: ["never"],
-            errors: [{ message: "Unexpected function expression name.", type: "FunctionExpression"}]
+            code: "Foo.prototype.bar = function() {};",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
         },
         {
-            code: "Foo.prototype.bar = function named() {};",
-            options: ["never"],
-            errors: [{ message: "Unexpected function expression name.", type: "FunctionExpression"}]
+            code: "(function(){}())",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
         },
         {
-            code: "({foo: function named() {}})",
+            code: "f(function(){})",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "var a = new Date(function() {});",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "var test = function(d, e, f) {};",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "new function() {}",
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "Foo.prototype.bar = function() {};",
+            options: ["as-needed"],
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "(function(){}())",
+            options: ["as-needed"],
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "f(function(){})",
+            options: ["as-needed"],
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "var a = new Date(function() {});",
+            options: ["as-needed"],
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "new function() {}",
+            options: ["as-needed"],
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "var {foo} = function(){};",
+            options: ["as-needed"],
+            parserOptions: { ecmaVersion: 6 },
+            errors: [{ message: "Unexpected unnamed function.", type: "FunctionExpression" }]
+        },
+        {
+            code: "var x = function foo() {};",
             options: ["never"],
-            errors: [{ message: "Unexpected function expression name.", type: "FunctionExpression"}]
+            errors: [{ message: "Unexpected named function 'foo'.", type: "FunctionExpression" }]
+        },
+        {
+            code: "Foo.prototype.bar = function foo() {};",
+            options: ["never"],
+            errors: [{ message: "Unexpected named function 'foo'.", type: "FunctionExpression" }]
+        },
+        {
+            code: "({foo: function foo() {}})",
+            options: ["never"],
+            errors: [{ message: "Unexpected named method 'foo'.", type: "FunctionExpression" }]
+        },
+        {
+            code: "({foo: function foo() {}})",
+            options: ["never"],
+            errors: [{ message: "Unexpected named method 'foo'.", type: "FunctionExpression" }]
         }
     ]
 });

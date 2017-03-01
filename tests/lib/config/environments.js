@@ -8,65 +8,58 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
-    proxyquire = require("proxyquire"),
+const assert = require("chai").assert,
     envs = require("../../../conf/environments"),
     Environments = require("../../../lib/config/environments");
-
-//------------------------------------------------------------------------------
-// Helpers
-//------------------------------------------------------------------------------
-
-proxyquire = proxyquire.noCallThru().noPreserveCache();
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-describe("Environments", function() {
+describe("Environments", () => {
 
-    describe("load()", function() {
+    describe("load()", () => {
 
-        it("should have all default environments loaded", function() {
-            Object.keys(envs).forEach(function(envName) {
+        it("should have all default environments loaded", () => {
+            Object.keys(envs).forEach(envName => {
                 assert.deepEqual(Environments.get(envName), envs[envName]);
             });
         });
 
-        it("should have all default environments loaded after being cleared", function() {
+        it("should have all default environments loaded after being cleared", () => {
             Environments.testReset();
 
-            Object.keys(envs).forEach(function(envName) {
+            Object.keys(envs).forEach(envName => {
                 assert.deepEqual(Environments.get(envName), envs[envName]);
             });
         });
     });
 
-    describe("define()", function() {
+    describe("define()", () => {
 
-        afterEach(function() {
+        afterEach(() => {
             Environments.testReset();
         });
 
-        it("should add an environment with the given name", function() {
-            var env = { globals: { foo: true }};
+        it("should add an environment with the given name", () => {
+            const env = { globals: { foo: true } };
 
             Environments.define("foo", env);
 
-            var result = Environments.get("foo");
+            const result = Environments.get("foo");
 
             assert.deepEqual(result, env);
         });
     });
 
-    describe("importPlugin()", function() {
+    describe("importPlugin()", () => {
 
-        afterEach(function() {
+        afterEach(() => {
             Environments.testReset();
         });
 
-        it("should import all environments from a plugin object", function() {
-            var plugin = {
+        it("should import all environments from a plugin object", () => {
+            const plugin = {
                 environments: {
                     foo: {
                         globals: { foo: true }
@@ -79,7 +72,7 @@ describe("Environments", function() {
 
             Environments.importPlugin(plugin, "plugin");
 
-            var fooEnv = Environments.get("plugin/foo"),
+            const fooEnv = Environments.get("plugin/foo"),
                 barEnv = Environments.get("plugin/bar");
 
             assert.deepEqual(fooEnv, plugin.environments.foo);

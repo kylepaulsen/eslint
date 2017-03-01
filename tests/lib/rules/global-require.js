@@ -9,15 +9,15 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/global-require"),
+const rule = require("../../../lib/rules/global-require"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
-var valid = [
+const valid = [
     { code: "var x = require('y');" },
     { code: "if (x) { x.require('y'); }" },
     { code: "var x;\nx = require('y');" },
@@ -33,10 +33,10 @@ var valid = [
     { code: "var someFunc = require('./someFunc'); someFunc(function(require) { return('bananas'); });" }
 ];
 
-var message = "Unexpected require().";
-var type = "CallExpression";
+const message = "Unexpected require().";
+const type = "CallExpression";
 
-var invalid = [
+const invalid = [
 
     // block statements
     {
@@ -44,8 +44,8 @@ var invalid = [
         errors: [{
             line: 2,
             column: 2,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -53,8 +53,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 21,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -62,8 +62,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 21,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -71,8 +71,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 16,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -80,8 +80,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 7,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
 
@@ -92,8 +92,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 22,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -102,8 +102,8 @@ var invalid = [
         errors: [{
             line: 1,
             column: 15,
-            message: message,
-            type: type
+            message,
+            type
         }]
     },
     {
@@ -111,13 +111,13 @@ var invalid = [
         errors: [{
             line: 1,
             column: 23,
-            message: message,
-            type: type
+            message,
+            type
         }]
     }
 ];
 
 ruleTester.run("global-require", rule, {
-    valid: valid,
-    invalid: invalid
+    valid,
+    invalid
 });

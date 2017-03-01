@@ -8,14 +8,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/space-before-function-paren"),
+const rule = require("../../../lib/rules/space-before-function-paren"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("space-before-function-paren", rule, {
 
@@ -59,7 +59,7 @@ ruleTester.run("space-before-function-paren", rule, {
                 "var bat = function*() {};",
                 "var obj = { get foo() {}, set foo(val) {}, bar() {} };"
             ].join("\n"),
-            options: [ { named: "never", anonymous: "always" } ],
+            options: [{ named: "never", anonymous: "always" }],
             parserOptions: { ecmaVersion: 6 }
         },
         {
@@ -70,31 +70,49 @@ ruleTester.run("space-before-function-paren", rule, {
                 "var bat = function* () {};",
                 "var obj = { get foo () {}, set foo (val) {}, bar () {} };"
             ].join("\n"),
-            options: [ { named: "always", anonymous: "never" } ],
+            options: [{ named: "always", anonymous: "never" }],
             parserOptions: { ecmaVersion: 6 }
         },
         {
             code: "class Foo { constructor() {} *method() {} }",
-            options: [ { named: "never", anonymous: "always" } ],
+            options: [{ named: "never", anonymous: "always" }],
             parserOptions: { ecmaVersion: 6 }
         },
         {
             code: "class Foo { constructor () {} *method () {} }",
-            options: [ { named: "always", anonymous: "never" } ],
+            options: [{ named: "always", anonymous: "never" }],
             parserOptions: { ecmaVersion: 6 }
         },
         { code: "var foo = function() {}",
-          options: [ { named: "always", anonymous: "ignore" } ]
+            options: [{ named: "always", anonymous: "ignore" }]
         },
         { code: "var foo = function () {}",
-          options: [ { named: "always", anonymous: "ignore" } ]
+            options: [{ named: "always", anonymous: "ignore" }]
         },
         { code: "var bar = function foo() {}",
-          options: [ { named: "ignore", anonymous: "always" } ]
+            options: [{ named: "ignore", anonymous: "always" }]
         },
         { code: "var bar = function foo () {}",
-          options: [ { named: "ignore", anonymous: "always" } ]
-        }
+            options: [{ named: "ignore", anonymous: "always" }]
+        },
+
+        // Async arrow functions
+        { code: "() => 1", parserOptions: { ecmaVersion: 6 } },
+        { code: "async a => a", parserOptions: { ecmaVersion: 8 } },
+        { code: "async a => a", options: [{ asyncArrow: "always" }], parserOptions: { ecmaVersion: 8 } },
+        { code: "async a => a", options: [{ asyncArrow: "never" }], parserOptions: { ecmaVersion: 8 } },
+        { code: "async () => 1", options: [{ asyncArrow: "always" }], parserOptions: { ecmaVersion: 8 } },
+        { code: "async() => 1", options: [{ asyncArrow: "never" }], parserOptions: { ecmaVersion: 8 } },
+        { code: "async () => 1", options: [{ asyncArrow: "ignore" }], parserOptions: { ecmaVersion: 8 } },
+        { code: "async() => 1", options: [{ asyncArrow: "ignore" }], parserOptions: { ecmaVersion: 8 } },
+
+        // ignore by default for now.
+        { code: "async () => 1", parserOptions: { ecmaVersion: 8 } },
+        { code: "async() => 1", parserOptions: { ecmaVersion: 8 } },
+        { code: "async () => 1", options: ["always"], parserOptions: { ecmaVersion: 8 } },
+        { code: "async() => 1", options: ["always"], parserOptions: { ecmaVersion: 8 } },
+        { code: "async () => 1", options: ["never"], parserOptions: { ecmaVersion: 8 } },
+        { code: "async() => 1", options: ["never"], parserOptions: { ecmaVersion: 8 } }
     ],
 
     invalid: [
@@ -284,7 +302,7 @@ ruleTester.run("space-before-function-paren", rule, {
                 "var bar = function() {}",
                 "var obj = { get foo () {}, set foo (val) {}, bar () {} };"
             ].join("\n"),
-            options: [ { named: "never", anonymous: "always" } ],
+            options: [{ named: "never", anonymous: "always" }],
             parserOptions: { ecmaVersion: 6 },
             errors: [
                 {
@@ -326,7 +344,7 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "class Foo { constructor () {} *method () {} }",
-            options: [ { named: "never", anonymous: "always" } ],
+            options: [{ named: "never", anonymous: "always" }],
             parserOptions: { ecmaVersion: 6 },
             errors: [
                 {
@@ -346,7 +364,7 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "var foo = { bar () {} }",
-            options: [ { named: "never", anonymous: "always" } ],
+            options: [{ named: "never", anonymous: "always" }],
             parserOptions: { ecmaVersion: 6 },
             errors: [
                 {
@@ -364,7 +382,7 @@ ruleTester.run("space-before-function-paren", rule, {
                 "var bar = function () {}",
                 "var obj = { get foo() {}, set foo(val) {}, bar() {} };"
             ].join("\n"),
-            options: [ { named: "always", anonymous: "never" } ],
+            options: [{ named: "always", anonymous: "never" }],
             parserOptions: { ecmaVersion: 6 },
             errors: [
                 {
@@ -406,7 +424,8 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "var foo = function() {}",
-            options: [ { named: "ignore", anonymous: "always" } ],
+            output: "var foo = function () {}",
+            options: [{ named: "ignore", anonymous: "always" }],
             errors: [
                 {
                     type: "FunctionExpression",
@@ -418,7 +437,8 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "var foo = function () {}",
-            options: [ { named: "ignore", anonymous: "never" } ],
+            output: "var foo = function() {}",
+            options: [{ named: "ignore", anonymous: "never" }],
             errors: [
                 {
                     type: "FunctionExpression",
@@ -430,7 +450,8 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "var bar = function foo() {}",
-            options: [ { named: "always", anonymous: "ignore" } ],
+            output: "var bar = function foo () {}",
+            options: [{ named: "always", anonymous: "ignore" }],
             errors: [
                 {
                     type: "FunctionExpression",
@@ -442,7 +463,8 @@ ruleTester.run("space-before-function-paren", rule, {
         },
         {
             code: "var bar = function foo () {}",
-            options: [ { named: "never", anonymous: "ignore" } ],
+            output: "var bar = function foo() {}",
+            options: [{ named: "never", anonymous: "ignore" }],
             errors: [
                 {
                     type: "FunctionExpression",
@@ -451,6 +473,22 @@ ruleTester.run("space-before-function-paren", rule, {
                     column: 23
                 }
             ]
+        },
+
+        // Async arrow functions
+        {
+            code: "async() => 1",
+            output: "async () => 1",
+            options: [{ asyncArrow: "always" }],
+            parserOptions: { ecmaVersion: 8 },
+            errors: ["Missing space before function parentheses."]
+        },
+        {
+            code: "async () => 1",
+            output: "async() => 1",
+            options: [{ asyncArrow: "never" }],
+            parserOptions: { ecmaVersion: 8 },
+            errors: ["Unexpected space before function parentheses."]
         }
     ]
 });

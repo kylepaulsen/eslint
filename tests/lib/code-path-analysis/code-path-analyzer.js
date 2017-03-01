@@ -9,7 +9,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("assert"),
+const assert = require("assert"),
     EventEmitter = require("events").EventEmitter,
     fs = require("fs"),
     path = require("path"),
@@ -25,8 +25,8 @@ var assert = require("assert"),
 // Helpers
 //------------------------------------------------------------------------------
 
-var expectedPattern = /\/\*expected\s+((?:.|[\r\n])+?)\s*\*\//g;
-var lineEndingPattern = /\r?\n/g;
+const expectedPattern = /\/\*expected\s+((?:.|[\r\n])+?)\s*\*\//g;
+const lineEndingPattern = /\r?\n/g;
 
 /**
  * Extracts the content of `/*expected` comments from a given source code.
@@ -38,8 +38,8 @@ var lineEndingPattern = /\r?\n/g;
 function getExpectedDotArrows(source) {
     expectedPattern.lastIndex = 0;
 
-    var retv = [];
-    var m;
+    const retv = [];
+    let m;
 
     while ((m = expectedPattern.exec(source)) !== null) {
         retv.push(m[1].replace(lineEndingPattern, "\n"));
@@ -52,9 +52,9 @@ function getExpectedDotArrows(source) {
 // Tests
 //------------------------------------------------------------------------------
 
-describe("CodePathAnalyzer", function() {
+describe("CodePathAnalyzer", () => {
 
-    afterEach(function() {
+    afterEach(() => {
         eslint.reset();
     });
 
@@ -62,36 +62,34 @@ describe("CodePathAnalyzer", function() {
         new CodePathAnalyzer(new NodeEventGenerator(new EventEmitter()))
     );
 
-    describe("interface of code paths", function() {
-        var actual = [];
+    describe("interface of code paths", () => {
+        let actual = [];
 
-        beforeEach(function() {
+        beforeEach(() => {
             actual = [];
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathStart: function(codePath) {
-                        actual.push(codePath);
-                    }
-                };
-            });
+            eslint.defineRule("test", () => ({
+                onCodePathStart(codePath) {
+                    actual.push(codePath);
+                }
+            }));
             eslint.verify(
                 "function foo(a) { if (a) return 0; else throw new Error(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
         });
 
-        it("should have `id` as unique string", function() {
+        it("should have `id` as unique string", () => {
             assert(typeof actual[0].id === "string");
             assert(typeof actual[1].id === "string");
             assert(actual[0].id !== actual[1].id);
         });
 
-        it("should have `upper` as CodePath", function() {
+        it("should have `upper` as CodePath", () => {
             assert(actual[0].upper === null);
             assert(actual[1].upper === actual[0]);
         });
 
-        it("should have `childCodePaths` as CodePath[]", function() {
+        it("should have `childCodePaths` as CodePath[]", () => {
             assert(Array.isArray(actual[0].childCodePaths));
             assert(Array.isArray(actual[1].childCodePaths));
             assert(actual[0].childCodePaths.length === 1);
@@ -99,14 +97,14 @@ describe("CodePathAnalyzer", function() {
             assert(actual[0].childCodePaths[0] === actual[1]);
         });
 
-        it("should have `initialSegment` as CodePathSegment", function() {
+        it("should have `initialSegment` as CodePathSegment", () => {
             assert(actual[0].initialSegment instanceof CodePathSegment);
             assert(actual[1].initialSegment instanceof CodePathSegment);
             assert(actual[0].initialSegment.prevSegments.length === 0);
             assert(actual[1].initialSegment.prevSegments.length === 0);
         });
 
-        it("should have `finalSegments` as CodePathSegment[]", function() {
+        it("should have `finalSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].finalSegments));
             assert(Array.isArray(actual[1].finalSegments));
             assert(actual[0].finalSegments.length === 1);
@@ -121,7 +119,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[1].finalSegments[1] === actual[1].thrownSegments[0]);
         });
 
-        it("should have `returnedSegments` as CodePathSegment[]", function() {
+        it("should have `returnedSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].returnedSegments));
             assert(Array.isArray(actual[1].returnedSegments));
             assert(actual[0].returnedSegments.length === 1);
@@ -130,7 +128,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[1].returnedSegments[0] instanceof CodePathSegment);
         });
 
-        it("should have `thrownSegments` as CodePathSegment[]", function() {
+        it("should have `thrownSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].thrownSegments));
             assert(Array.isArray(actual[1].thrownSegments));
             assert(actual[0].thrownSegments.length === 0);
@@ -138,25 +136,25 @@ describe("CodePathAnalyzer", function() {
             assert(actual[1].thrownSegments[0] instanceof CodePathSegment);
         });
 
-        it("should have `currentSegments` as CodePathSegment[]", function() {
+        it("should have `currentSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].currentSegments));
             assert(Array.isArray(actual[1].currentSegments));
             assert(actual[0].currentSegments.length === 0);
             assert(actual[1].currentSegments.length === 0);
 
             // there is the current segment in progress.
-            eslint.defineRule("test", function() {
-                var codePath = null;
+            eslint.defineRule("test", () => {
+                let codePath = null;
 
                 return {
-                    onCodePathStart: function(cp) {
+                    onCodePathStart(cp) {
                         codePath = cp;
                     },
-                    ReturnStatement: function() {
+                    ReturnStatement() {
                         assert(codePath.currentSegments.length === 1);
                         assert(codePath.currentSegments[0] instanceof CodePathSegment);
                     },
-                    ThrowStatement: function() {
+                    ThrowStatement() {
                         assert(codePath.currentSegments.length === 1);
                         assert(codePath.currentSegments[0] instanceof CodePathSegment);
                     }
@@ -164,30 +162,28 @@ describe("CodePathAnalyzer", function() {
             });
             eslint.verify(
                 "function foo(a) { if (a) return 0; else throw new Error(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
         });
     });
 
-    describe("interface of code path segments", function() {
-        var actual = [];
+    describe("interface of code path segments", () => {
+        let actual = [];
 
-        beforeEach(function() {
+        beforeEach(() => {
             actual = [];
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentStart: function(segment) {
-                        actual.push(segment);
-                    }
-                };
-            });
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentStart(segment) {
+                    actual.push(segment);
+                }
+            }));
             eslint.verify(
                 "function foo(a) { if (a) return 0; else throw new Error(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
         });
 
-        it("should have `id` as unique string", function() {
+        it("should have `id` as unique string", () => {
             assert(typeof actual[0].id === "string");
             assert(typeof actual[1].id === "string");
             assert(typeof actual[2].id === "string");
@@ -200,7 +196,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[2].id !== actual[3].id);
         });
 
-        it("should have `nextSegments` as CodePathSegment[]", function() {
+        it("should have `nextSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].nextSegments));
             assert(Array.isArray(actual[1].nextSegments));
             assert(Array.isArray(actual[2].nextSegments));
@@ -213,7 +209,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[1].nextSegments[1] === actual[3]);
         });
 
-        it("should have `allNextSegments` as CodePathSegment[]", function() {
+        it("should have `allNextSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].allNextSegments));
             assert(Array.isArray(actual[1].allNextSegments));
             assert(Array.isArray(actual[2].allNextSegments));
@@ -226,7 +222,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[3].allNextSegments[0].reachable === false);
         });
 
-        it("should have `prevSegments` as CodePathSegment[]", function() {
+        it("should have `prevSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].prevSegments));
             assert(Array.isArray(actual[1].prevSegments));
             assert(Array.isArray(actual[2].prevSegments));
@@ -239,7 +235,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[3].prevSegments[0] === actual[1]);
         });
 
-        it("should have `allPrevSegments` as CodePathSegment[]", function() {
+        it("should have `allPrevSegments` as CodePathSegment[]", () => {
             assert(Array.isArray(actual[0].allPrevSegments));
             assert(Array.isArray(actual[1].allPrevSegments));
             assert(Array.isArray(actual[2].allPrevSegments));
@@ -250,7 +246,7 @@ describe("CodePathAnalyzer", function() {
             assert(actual[3].allPrevSegments.length === 1);
         });
 
-        it("should have `reachable` as boolean", function() {
+        it("should have `reachable` as boolean", () => {
             assert(actual[0].reachable === true);
             assert(actual[1].reachable === true);
             assert(actual[2].reachable === true);
@@ -258,339 +254,319 @@ describe("CodePathAnalyzer", function() {
         });
     });
 
-    describe("onCodePathStart", function() {
-        it("should be fired at the head of programs/functions", function() {
-            var count = 0;
-            var lastCodePathNodeType = null;
+    describe("onCodePathStart", () => {
+        it("should be fired at the head of programs/functions", () => {
+            let count = 0;
+            let lastCodePathNodeType = null;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathStart: function(cp, node) {
-                        count += 1;
-                        lastCodePathNodeType = node.type;
+            eslint.defineRule("test", () => ({
+                onCodePathStart(cp, node) {
+                    count += 1;
+                    lastCodePathNodeType = node.type;
 
-                        assert(cp instanceof CodePath);
-                        if (count === 1) {
-                            assert(node.type === "Program");
-                        } else if (count === 2) {
-                            assert(node.type === "FunctionDeclaration");
-                        } else if (count === 3) {
-                            assert(node.type === "FunctionExpression");
-                        } else if (count === 4) {
-                            assert(node.type === "ArrowFunctionExpression");
-                        }
-                    },
-                    Program: function() {
-                        assert(lastCodePathNodeType === "Program");
-                    },
-                    FunctionDeclaration: function() {
-                        assert(lastCodePathNodeType === "FunctionDeclaration");
-                    },
-                    FunctionExpression: function() {
-                        assert(lastCodePathNodeType === "FunctionExpression");
-                    },
-                    ArrowFunctionExpression: function() {
-                        assert(lastCodePathNodeType === "ArrowFunctionExpression");
+                    assert(cp instanceof CodePath);
+                    if (count === 1) {
+                        assert(node.type === "Program");
+                    } else if (count === 2) {
+                        assert(node.type === "FunctionDeclaration");
+                    } else if (count === 3) {
+                        assert(node.type === "FunctionExpression");
+                    } else if (count === 4) {
+                        assert(node.type === "ArrowFunctionExpression");
                     }
-                };
-            });
+                },
+                Program() {
+                    assert(lastCodePathNodeType === "Program");
+                },
+                FunctionDeclaration() {
+                    assert(lastCodePathNodeType === "FunctionDeclaration");
+                },
+                FunctionExpression() {
+                    assert(lastCodePathNodeType === "FunctionExpression");
+                },
+                ArrowFunctionExpression() {
+                    assert(lastCodePathNodeType === "ArrowFunctionExpression");
+                }
+            }));
             eslint.verify(
                 "foo(); function foo() {} var foo = function() {}; var foo = () => {};",
-                {rules: {test: 2}, env: {es6: true}}
+                { rules: { test: 2 }, env: { es6: true } }
             );
 
             assert(count === 4);
         });
     });
 
-    describe("onCodePathEnd", function() {
-        it("should be fired at the end of programs/functions", function() {
-            var count = 0;
-            var lastNodeType = null;
+    describe("onCodePathEnd", () => {
+        it("should be fired at the end of programs/functions", () => {
+            let count = 0;
+            let lastNodeType = null;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathEnd: function(cp, node) {
-                        count += 1;
+            eslint.defineRule("test", () => ({
+                onCodePathEnd(cp, node) {
+                    count += 1;
 
-                        assert(cp instanceof CodePath);
-                        if (count === 4) {
-                            assert(node.type === "Program");
-                        } else if (count === 1) {
-                            assert(node.type === "FunctionDeclaration");
-                        } else if (count === 2) {
-                            assert(node.type === "FunctionExpression");
-                        } else if (count === 3) {
-                            assert(node.type === "ArrowFunctionExpression");
-                        }
-                        assert(node.type === lastNodeType);
-                    },
-                    "Program:exit": function() {
-                        lastNodeType = "Program";
-                    },
-                    "FunctionDeclaration:exit": function() {
-                        lastNodeType = "FunctionDeclaration";
-                    },
-                    "FunctionExpression:exit": function() {
-                        lastNodeType = "FunctionExpression";
-                    },
-                    "ArrowFunctionExpression:exit": function() {
-                        lastNodeType = "ArrowFunctionExpression";
+                    assert(cp instanceof CodePath);
+                    if (count === 4) {
+                        assert(node.type === "Program");
+                    } else if (count === 1) {
+                        assert(node.type === "FunctionDeclaration");
+                    } else if (count === 2) {
+                        assert(node.type === "FunctionExpression");
+                    } else if (count === 3) {
+                        assert(node.type === "ArrowFunctionExpression");
                     }
-                };
-            });
+                    assert(node.type === lastNodeType);
+                },
+                "Program:exit"() {
+                    lastNodeType = "Program";
+                },
+                "FunctionDeclaration:exit"() {
+                    lastNodeType = "FunctionDeclaration";
+                },
+                "FunctionExpression:exit"() {
+                    lastNodeType = "FunctionExpression";
+                },
+                "ArrowFunctionExpression:exit"() {
+                    lastNodeType = "ArrowFunctionExpression";
+                }
+            }));
             eslint.verify(
                 "foo(); function foo() {} var foo = function() {}; var foo = () => {};",
-                {rules: {test: 2}, env: {es6: true}}
+                { rules: { test: 2 }, env: { es6: true } }
             );
 
             assert(count === 4);
         });
     });
 
-    describe("onCodePathSegmentStart", function() {
-        it("should be fired at the head of programs/functions for the initial segment", function() {
-            var count = 0;
-            var lastCodePathNodeType = null;
+    describe("onCodePathSegmentStart", () => {
+        it("should be fired at the head of programs/functions for the initial segment", () => {
+            let count = 0;
+            let lastCodePathNodeType = null;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentStart: function(segment, node) {
-                        count += 1;
-                        lastCodePathNodeType = node.type;
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentStart(segment, node) {
+                    count += 1;
+                    lastCodePathNodeType = node.type;
 
-                        assert(segment instanceof CodePathSegment);
-                        if (count === 1) {
-                            assert(node.type === "Program");
-                        } else if (count === 2) {
-                            assert(node.type === "FunctionDeclaration");
-                        } else if (count === 3) {
-                            assert(node.type === "FunctionExpression");
-                        } else if (count === 4) {
-                            assert(node.type === "ArrowFunctionExpression");
-                        }
-                    },
-                    Program: function() {
-                        assert(lastCodePathNodeType === "Program");
-                    },
-                    FunctionDeclaration: function() {
-                        assert(lastCodePathNodeType === "FunctionDeclaration");
-                    },
-                    FunctionExpression: function() {
-                        assert(lastCodePathNodeType === "FunctionExpression");
-                    },
-                    ArrowFunctionExpression: function() {
-                        assert(lastCodePathNodeType === "ArrowFunctionExpression");
+                    assert(segment instanceof CodePathSegment);
+                    if (count === 1) {
+                        assert(node.type === "Program");
+                    } else if (count === 2) {
+                        assert(node.type === "FunctionDeclaration");
+                    } else if (count === 3) {
+                        assert(node.type === "FunctionExpression");
+                    } else if (count === 4) {
+                        assert(node.type === "ArrowFunctionExpression");
                     }
-                };
-            });
+                },
+                Program() {
+                    assert(lastCodePathNodeType === "Program");
+                },
+                FunctionDeclaration() {
+                    assert(lastCodePathNodeType === "FunctionDeclaration");
+                },
+                FunctionExpression() {
+                    assert(lastCodePathNodeType === "FunctionExpression");
+                },
+                ArrowFunctionExpression() {
+                    assert(lastCodePathNodeType === "ArrowFunctionExpression");
+                }
+            }));
             eslint.verify(
                 "foo(); function foo() {} var foo = function() {}; var foo = () => {};",
-                {rules: {test: 2}, env: {es6: true}}
+                { rules: { test: 2 }, env: { es6: true } }
             );
 
             assert(count === 4);
         });
     });
 
-    describe("onCodePathSegmentEnd", function() {
-        it("should be fired at the end of programs/functions for the final segment", function() {
-            var count = 0;
-            var lastNodeType = null;
+    describe("onCodePathSegmentEnd", () => {
+        it("should be fired at the end of programs/functions for the final segment", () => {
+            let count = 0;
+            let lastNodeType = null;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentEnd: function(cp, node) {
-                        count += 1;
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentEnd(cp, node) {
+                    count += 1;
 
-                        assert(cp instanceof CodePathSegment);
-                        if (count === 4) {
-                            assert(node.type === "Program");
-                        } else if (count === 1) {
-                            assert(node.type === "FunctionDeclaration");
-                        } else if (count === 2) {
-                            assert(node.type === "FunctionExpression");
-                        } else if (count === 3) {
-                            assert(node.type === "ArrowFunctionExpression");
-                        }
-                        assert(node.type === lastNodeType);
-                    },
-                    "Program:exit": function() {
-                        lastNodeType = "Program";
-                    },
-                    "FunctionDeclaration:exit": function() {
-                        lastNodeType = "FunctionDeclaration";
-                    },
-                    "FunctionExpression:exit": function() {
-                        lastNodeType = "FunctionExpression";
-                    },
-                    "ArrowFunctionExpression:exit": function() {
-                        lastNodeType = "ArrowFunctionExpression";
+                    assert(cp instanceof CodePathSegment);
+                    if (count === 4) {
+                        assert(node.type === "Program");
+                    } else if (count === 1) {
+                        assert(node.type === "FunctionDeclaration");
+                    } else if (count === 2) {
+                        assert(node.type === "FunctionExpression");
+                    } else if (count === 3) {
+                        assert(node.type === "ArrowFunctionExpression");
                     }
-                };
-            });
+                    assert(node.type === lastNodeType);
+                },
+                "Program:exit"() {
+                    lastNodeType = "Program";
+                },
+                "FunctionDeclaration:exit"() {
+                    lastNodeType = "FunctionDeclaration";
+                },
+                "FunctionExpression:exit"() {
+                    lastNodeType = "FunctionExpression";
+                },
+                "ArrowFunctionExpression:exit"() {
+                    lastNodeType = "ArrowFunctionExpression";
+                }
+            }));
             eslint.verify(
                 "foo(); function foo() {} var foo = function() {}; var foo = () => {};",
-                {rules: {test: 2}, env: {es6: true}}
+                { rules: { test: 2 }, env: { es6: true } }
             );
 
             assert(count === 4);
         });
     });
 
-    describe("onCodePathSegmentLoop", function() {
-        it("should be fired in `while` loops", function() {
-            var count = 0;
+    describe("onCodePathSegmentLoop", () => {
+        it("should be fired in `while` loops", () => {
+            let count = 0;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentLoop: function(fromSegment, toSegment, node) {
-                        count += 1;
-                        assert(fromSegment instanceof CodePathSegment);
-                        assert(toSegment instanceof CodePathSegment);
-                        assert(node.type === "WhileStatement");
-                    }
-                };
-            });
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentLoop(fromSegment, toSegment, node) {
+                    count += 1;
+                    assert(fromSegment instanceof CodePathSegment);
+                    assert(toSegment instanceof CodePathSegment);
+                    assert(node.type === "WhileStatement");
+                }
+            }));
             eslint.verify(
                 "while (a) { foo(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
 
             assert(count === 1);
         });
 
-        it("should be fired in `do-while` loops", function() {
-            var count = 0;
+        it("should be fired in `do-while` loops", () => {
+            let count = 0;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentLoop: function(fromSegment, toSegment, node) {
-                        count += 1;
-                        assert(fromSegment instanceof CodePathSegment);
-                        assert(toSegment instanceof CodePathSegment);
-                        assert(node.type === "DoWhileStatement");
-                    }
-                };
-            });
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentLoop(fromSegment, toSegment, node) {
+                    count += 1;
+                    assert(fromSegment instanceof CodePathSegment);
+                    assert(toSegment instanceof CodePathSegment);
+                    assert(node.type === "DoWhileStatement");
+                }
+            }));
             eslint.verify(
                 "do { foo(); } while (a);",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
 
             assert(count === 1);
         });
 
-        it("should be fired in `for` loops", function() {
-            var count = 0;
+        it("should be fired in `for` loops", () => {
+            let count = 0;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentLoop: function(fromSegment, toSegment, node) {
-                        count += 1;
-                        assert(fromSegment instanceof CodePathSegment);
-                        assert(toSegment instanceof CodePathSegment);
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentLoop(fromSegment, toSegment, node) {
+                    count += 1;
+                    assert(fromSegment instanceof CodePathSegment);
+                    assert(toSegment instanceof CodePathSegment);
 
-                        if (count === 1) {
+                    if (count === 1) {
 
                             // connect path: "update" -> "test"
-                            assert(node.parent.type === "ForStatement");
-                        } else if (count === 2) {
-                            assert(node.type === "ForStatement");
-                        }
+                        assert(node.parent.type === "ForStatement");
+                    } else if (count === 2) {
+                        assert(node.type === "ForStatement");
                     }
-                };
-            });
+                }
+            }));
             eslint.verify(
                 "for (var i = 0; i < 10; ++i) { foo(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
 
             assert(count === 2);
         });
 
-        it("should be fired in `for-in` loops", function() {
-            var count = 0;
+        it("should be fired in `for-in` loops", () => {
+            let count = 0;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentLoop: function(fromSegment, toSegment, node) {
-                        count += 1;
-                        assert(fromSegment instanceof CodePathSegment);
-                        assert(toSegment instanceof CodePathSegment);
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentLoop(fromSegment, toSegment, node) {
+                    count += 1;
+                    assert(fromSegment instanceof CodePathSegment);
+                    assert(toSegment instanceof CodePathSegment);
 
-                        if (count === 1) {
+                    if (count === 1) {
 
                             // connect path: "right" -> "left"
-                            assert(node.parent.type === "ForInStatement");
-                        } else if (count === 2) {
-                            assert(node.type === "ForInStatement");
-                        }
+                        assert(node.parent.type === "ForInStatement");
+                    } else if (count === 2) {
+                        assert(node.type === "ForInStatement");
                     }
-                };
-            });
+                }
+            }));
             eslint.verify(
                 "for (var k in obj) { foo(); }",
-                {rules: {test: 2}}
+                { rules: { test: 2 } }
             );
 
             assert(count === 2);
         });
 
-        it("should be fired in `for-of` loops", function() {
-            var count = 0;
+        it("should be fired in `for-of` loops", () => {
+            let count = 0;
 
-            eslint.defineRule("test", function() {
-                return {
-                    onCodePathSegmentLoop: function(fromSegment, toSegment, node) {
-                        count += 1;
-                        assert(fromSegment instanceof CodePathSegment);
-                        assert(toSegment instanceof CodePathSegment);
+            eslint.defineRule("test", () => ({
+                onCodePathSegmentLoop(fromSegment, toSegment, node) {
+                    count += 1;
+                    assert(fromSegment instanceof CodePathSegment);
+                    assert(toSegment instanceof CodePathSegment);
 
-                        if (count === 1) {
+                    if (count === 1) {
 
                             // connect path: "right" -> "left"
-                            assert(node.parent.type === "ForOfStatement");
-                        } else if (count === 2) {
-                            assert(node.type === "ForOfStatement");
-                        }
+                        assert(node.parent.type === "ForOfStatement");
+                    } else if (count === 2) {
+                        assert(node.type === "ForOfStatement");
                     }
-                };
-            });
+                }
+            }));
             eslint.verify(
                 "for (var x of xs) { foo(); }",
-                {rules: {test: 2}, env: {es6: true}}
+                { rules: { test: 2 }, env: { es6: true } }
             );
 
             assert(count === 2);
         });
     });
 
-    describe("completed code paths are correct", function() {
-        var testDataDir = path.join(__dirname, "../../fixtures/code-path-analysis/");
-        var testDataFiles = fs.readdirSync(testDataDir);
+    describe("completed code paths are correct", () => {
+        const testDataDir = path.join(__dirname, "../../fixtures/code-path-analysis/");
+        const testDataFiles = fs.readdirSync(testDataDir);
 
-        testDataFiles.forEach(function(file) {
-            it(file, function() {
-                var source = fs.readFileSync(path.join(testDataDir, file), {encoding: "utf8"});
-                var expected = getExpectedDotArrows(source);
-                var actual = [];
+        testDataFiles.forEach(file => {
+            it(file, () => {
+                const source = fs.readFileSync(path.join(testDataDir, file), { encoding: "utf8" });
+                const expected = getExpectedDotArrows(source);
+                const actual = [];
 
                 assert(expected.length > 0, "/*expected */ comments not found.");
 
-                eslint.defineRule("test", function() {
-                    return {
-                        onCodePathEnd: function(codePath) {
-                            actual.push(debug.makeDotArrows(codePath));
-                        }
-                    };
-                });
-                var messages = eslint.verify(source, {rules: {test: 2}, env: {es6: true}});
+                eslint.defineRule("test", () => ({
+                    onCodePathEnd(codePath) {
+                        actual.push(debug.makeDotArrows(codePath));
+                    }
+                }));
+                const messages = eslint.verify(source, { rules: { test: 2 }, env: { es6: true } });
 
                 assert.equal(messages.length, 0);
                 assert.equal(actual.length, expected.length, "a count of code paths is wrong.");
 
-                for (var i = 0; i < actual.length; ++i) {
+                for (let i = 0; i < actual.length; ++i) {
                     assert.equal(actual[i], expected[i]);
                 }
             });

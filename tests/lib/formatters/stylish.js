@@ -9,22 +9,22 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
+const assert = require("chai").assert,
     chalk = require("chalk"),
     proxyquire = require("proxyquire"),
     sinon = require("sinon");
 
 // Chalk protects its methods so we need to inherit from it
 // for Sinon to work.
-var chalkStub = Object.create(chalk, {
+const chalkStub = Object.create(chalk, {
     yellow: {
-        value: function(str) {
+        value(str) {
             return chalk.yellow(str);
         },
         writable: true
     },
     red: {
-        value: function(str) {
+        value(str) {
             return chalk.red(str);
         },
         writable: true
@@ -34,36 +34,36 @@ var chalkStub = Object.create(chalk, {
 chalkStub.yellow.bold = chalk.yellow.bold;
 chalkStub.red.bold = chalk.red.bold;
 
-var formatter = proxyquire("../../../lib/formatters/stylish", { chalk: chalkStub });
+const formatter = proxyquire("../../../lib/formatters/stylish", { chalk: chalkStub });
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-describe("formatter:stylish", function() {
-    var sandbox,
-        colorsEnabled = chalk.enabled;
+describe("formatter:stylish", () => {
+    let sandbox;
+    const colorsEnabled = chalk.enabled;
 
-    beforeEach(function() {
+    beforeEach(() => {
         chalk.enabled = false;
         sandbox = sinon.sandbox.create();
         sandbox.spy(chalkStub.yellow, "bold");
         sandbox.spy(chalkStub.red, "bold");
     });
 
-    afterEach(function() {
+    afterEach(() => {
         sandbox.verifyAndRestore();
         chalk.enabled = colorsEnabled;
     });
 
-    describe("when passed no messages", function() {
-        var code = [{
+    describe("when passed no messages", () => {
+        const code = [{
             filePath: "foo.js",
             messages: []
         }];
 
-        it("should not return message", function() {
-            var result = formatter(code);
+        it("should not return message", () => {
+            const result = formatter(code);
 
             assert.equal(result, "");
             assert.equal(chalkStub.yellow.bold.callCount, 0);
@@ -71,8 +71,8 @@ describe("formatter:stylish", function() {
         });
     });
 
-    describe("when passed a single message", function() {
-        var code = [{
+    describe("when passed a single message", () => {
+        const code = [{
             filePath: "foo.js",
             messages: [{
                 message: "Unexpected foo.",
@@ -83,17 +83,17 @@ describe("formatter:stylish", function() {
             }]
         }];
 
-        it("should return a string in the correct format for errors", function() {
-            var result = formatter(code);
+        it("should return a string in the correct format for errors", () => {
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  5:10  error  Unexpected foo  foo\n\n\u2716 1 problem (1 error, 0 warnings)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 0);
             assert.equal(chalkStub.red.bold.callCount, 1);
         });
 
-        it("should return a string in the correct format for warnings", function() {
+        it("should return a string in the correct format for warnings", () => {
             code[0].messages[0].severity = 1;
-            var result = formatter(code);
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  5:10  warning  Unexpected foo  foo\n\n\u2716 1 problem (0 errors, 1 warning)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 1);
@@ -101,8 +101,8 @@ describe("formatter:stylish", function() {
         });
     });
 
-    describe("when passed a fatal error message", function() {
-        var code = [{
+    describe("when passed a fatal error message", () => {
+        const code = [{
             filePath: "foo.js",
             messages: [{
                 fatal: true,
@@ -113,8 +113,8 @@ describe("formatter:stylish", function() {
             }]
         }];
 
-        it("should return a string in the correct format", function() {
-            var result = formatter(code);
+        it("should return a string in the correct format", () => {
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  5:10  error  Unexpected foo  foo\n\n\u2716 1 problem (1 error, 0 warnings)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 0);
@@ -122,8 +122,8 @@ describe("formatter:stylish", function() {
         });
     });
 
-    describe("when passed multiple messages", function() {
-        var code = [{
+    describe("when passed multiple messages", () => {
+        const code = [{
             filePath: "foo.js",
             messages: [{
                 message: "Unexpected foo.",
@@ -140,8 +140,8 @@ describe("formatter:stylish", function() {
             }]
         }];
 
-        it("should return a string with multiple entries", function() {
-            var result = formatter(code);
+        it("should return a string with multiple entries", () => {
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  5:10  error    Unexpected foo  foo\n  6:11  warning  Unexpected bar  bar\n\n\u2716 2 problems (1 error, 1 warning)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 0);
@@ -149,8 +149,8 @@ describe("formatter:stylish", function() {
         });
     });
 
-    describe("when passed multiple files with 1 message each", function() {
-        var code = [{
+    describe("when passed multiple files with 1 message each", () => {
+        const code = [{
             filePath: "foo.js",
             messages: [{
                 message: "Unexpected foo.",
@@ -170,8 +170,8 @@ describe("formatter:stylish", function() {
             }]
         }];
 
-        it("should return a string with multiple entries", function() {
-            var result = formatter(code);
+        it("should return a string with multiple entries", () => {
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  5:10  error  Unexpected foo  foo\n\nbar.js\n  6:11  warning  Unexpected bar  bar\n\n\u2716 2 problems (1 error, 1 warning)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 0);
@@ -179,8 +179,8 @@ describe("formatter:stylish", function() {
         });
     });
 
-    describe("when passed one file not found message", function() {
-        var code = [{
+    describe("when passed one file not found message", () => {
+        const code = [{
             filePath: "foo.js",
             messages: [{
                 fatal: true,
@@ -188,8 +188,8 @@ describe("formatter:stylish", function() {
             }]
         }];
 
-        it("should return a string without line and column", function() {
-            var result = formatter(code);
+        it("should return a string without line and column", () => {
+            const result = formatter(code);
 
             assert.equal(result, "\nfoo.js\n  0:0  error  Couldn't find foo.js\n\n\u2716 1 problem (1 error, 0 warnings)\n");
             assert.equal(chalkStub.yellow.bold.callCount, 0);

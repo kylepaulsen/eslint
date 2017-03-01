@@ -8,25 +8,25 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-empty-pattern"),
+const rule = require("../../../lib/rules/no-empty-pattern"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-empty-pattern", rule, {
 
     // Examples of code that should not trigger the rule
     valid: [
-        { code: "var {a = {}} = foo;", parserOptions: { ecmaVersion: 6 }},
-        { code: "var {a, b = {}} = foo;", parserOptions: { ecmaVersion: 6 }},
-        { code: "var {a = []} = foo;", parserOptions: { ecmaVersion: 6 }},
-        { code: "function foo({a = {}}) {}", parserOptions: { ecmaVersion: 6 }},
-        { code: "function foo({a = []}) {}", parserOptions: { ecmaVersion: 6 }},
-        { code: "var [a] = foo", parserOptions: { ecmaVersion: 6 }}
+        { code: "var {a = {}} = foo;", parserOptions: { ecmaVersion: 6 } },
+        { code: "var {a, b = {}} = foo;", parserOptions: { ecmaVersion: 6 } },
+        { code: "var {a = []} = foo;", parserOptions: { ecmaVersion: 6 } },
+        { code: "function foo({a = {}}) {}", parserOptions: { ecmaVersion: 6 } },
+        { code: "function foo({a = []}) {}", parserOptions: { ecmaVersion: 6 } },
+        { code: "var [a] = foo", parserOptions: { ecmaVersion: 6 } }
     ],
 
     // Examples of code that should trigger the rule

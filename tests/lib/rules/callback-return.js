@@ -8,7 +8,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/callback-return"),
+const rule = require("../../../lib/rules/callback-return"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ var rule = require("../../../lib/rules/callback-return"),
 //------------------------------------------------------------------------------
 
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("callback-return", rule, {
     valid: [

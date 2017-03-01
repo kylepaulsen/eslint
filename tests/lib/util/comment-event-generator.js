@@ -8,7 +8,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("assert"),
+const assert = require("assert"),
     EventEmitter = require("events").EventEmitter,
     sinon = require("sinon"),
     espree = require("espree"),
@@ -22,24 +22,24 @@ var assert = require("assert"),
 // Tests
 //------------------------------------------------------------------------------
 
-describe("NodeEventGenerator", function() {
+describe("NodeEventGenerator", () => {
     EventGeneratorTester.testEventGeneratorInterface(
         new CommentEventGenerator(new NodeEventGenerator(new EventEmitter()))
     );
 
-    it("should generate comment events without duplicate.", function() {
-        var emitter = new EventEmitter();
-        var generator = new NodeEventGenerator(emitter);
-        var code = "//foo\nvar zzz /*aaa*/ = 777;\n//bar";
-        var ast = espree.parse(code, {
+    it("should generate comment events without duplicate.", () => {
+        const emitter = new EventEmitter();
+        let generator = new NodeEventGenerator(emitter);
+        const code = "//foo\nvar zzz /*aaa*/ = 777;\n//bar";
+        const ast = espree.parse(code, {
             range: true,
             loc: true,
             comments: true,
             attachComment: true,
             tokens: true
         });
-        var sourceCode = new SourceCode(code, ast);
-        var expected = [
+        const sourceCode = new SourceCode(code, ast);
+        const expected = [
 
             ["Program", ast],
             ["LineComment", ast.comments[0]], // foo
@@ -63,17 +63,17 @@ describe("NodeEventGenerator", function() {
         generator = new CommentEventGenerator(generator, sourceCode);
 
         estraverse.traverse(ast, {
-            enter: function(node) {
+            enter(node) {
                 generator.enterNode(node);
             },
-            leave: function(node) {
+            leave(node) {
                 generator.leaveNode(node);
             }
         });
 
         assert.equal(emitter.emit.callCount, expected.length);
 
-        for (var i = 0; i < expected.length; ++i) {
+        for (let i = 0; i < expected.length; ++i) {
             assert.equal(emitter.emit.args[i][0], expected[i][0]);
             assert.equal(emitter.emit.args[i][1], expected[i][1]);
         }

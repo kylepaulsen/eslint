@@ -8,8 +8,7 @@ If you'd like to work on a pull request and you've never submitted code before, 
 
 1. Sign our [Contributor License Agreement](https://contribute.jquery.org/cla).
 1. Set up a [development environment](../development-environment).
-1. Ensure there's an issue that describes what you're doing. You can create a new issue or just indicate you're [working on an existing issue](working-on-issues).
-    * Exception: documentation-only changes do not require an issue.
+1. If you want to implement a breaking change or a change to the core, ensure there's an issue that describes what you're doing and the issue has been accepted. You can create a new issue or just indicate you're [working on an existing issue](working-on-issues). Bug fixes, documentation changes, and other pull requests do not require an issue.
 
 After that, you're ready to start working on code.
 
@@ -21,8 +20,8 @@ The process of submitting a pull request is fairly straightforward and generally
 2. [Make your changes](#step2)
 3. [Rebase onto upstream](#step3)
 4. [Run the tests](#step4)
-5. [Squash your commits](#step5)
-6. [Double check your submission](#step6)
+5. [Double check your submission](#step5)
+6. [Push your changes](#step6)
 7. [Submit the pull request](#step7)
 
 Details about each step are found below.
@@ -71,7 +70,7 @@ The `Tag` is one of the following:
 
 Use the [labels of the issue you are working on](working-on-issues#issue-labels) to determine the best tag.
 
-The message summary should be a one-sentence description of the change, and it must be 72 characters in length or shorter. The issue number should be mentioned at the end. If the commit doesn't completely fix the issue, then use `(refs #1234)` instead of `(fixes #1234)`.
+The message summary should be a one-sentence description of the change, and it must be 72 characters in length or shorter. If the pull request addresses an issue, then the issue number should be mentioned at the end. If the commit doesn't completely fix the issue, then use `(refs #1234)` instead of `(fixes #1234)`.
 
 Here are some good commit message summary examples:
 
@@ -100,25 +99,34 @@ After rebasing, be sure to run all of the tests once again to make sure nothing 
 npm test
 ```
 
-### Step 5: Squash your commits<a name="step5"></a>
+If there are any failing tests, update your code until all tests pass.
 
-ESLint requires just one commit per pull request. If you have used multiple commits, be sure to [squash](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html) your commits.
-
-### Step 6: Double check your submission<a name="step6"></a>
+### Step 5: Double check your submission<a name="step5"></a>
 
 With your code ready to go, this is a good time to double-check your submission to make sure it follows our conventions. Here are the things to check:
 
 * Run `npm run check-commit` to double-check that your commit is formatted correctly.
-* Make sure there is an issue for any pull request you send.
-    * The only exception is for documentation changes.
 * The pull request must have a description. The description should explain what you did and how its effects can be seen.
 * The commit message is properly formatted.
 * The change introduces no functional regression. Be sure to run `npm test` to verify your changes before submitting a pull request.
 * Make separate pull requests for unrelated changes. Large pull requests with multiple unrelated changes may be closed without merging.
 * All changes must be accompanied by tests, even if the feature you're working on previously had no tests.
 * All user-facing changes must be accompanied by appropriate documentation.
-* Only *one commit* is allowed per pull request. If you have multiple commits, you'll be asked to squash them.
 * Follow the [Code Conventions](../code-conventions.html).
+
+### Step 6: Push your changes<a name="step6"></a>
+
+Next, push your changes to your clone:
+
+```
+git push origin issue1234
+```
+
+If you are unable to push because some references are old, do a forced push instead:
+
+```
+git push -f origin issue1234
+```
 
 ### Step 7: Send the pull request<a name="step7"></a>
 
@@ -160,7 +168,7 @@ This snippets adds all your new changes, then amends the previous commit with th
 
 ### Rebasing
 
-If your code is out-of-date, we might ask you to rebase. That means we want you to apply your changes on top of the latest upstream code. You can do so via:
+If your code is out-of-date, we might ask you to rebase. That means we want you to apply your changes on top of the latest upstream code. Make sure you have set up a [development environment](../development-environment) and then you can rebase using these commands:
 
 ```
 $ git fetch upstream
@@ -168,14 +176,6 @@ $ git rebase upstream/master
 ```
 
 You might find that there are merge conflicts when you attempt to rebase. Please [resolve the conflicts](https://help.github.com/articles/resolving-merge-conflicts-after-a-git-rebase/) and then do a forced push to your branch:
-
-```
-$ git push origin issue1234 -f
-```
-
-### Squashing
-
-If you have more than one commit on your pull request, we'll ask you to [squash your commits](http://gitready.com/advanced/2009/02/10/squashing-commits-with-rebase.html). Once your commits are squashed, you can do a forced push to update your branch:
 
 ```
 $ git push origin issue1234 -f

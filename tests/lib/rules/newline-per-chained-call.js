@@ -9,10 +9,10 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/newline-per-chained-call"),
+const rule = require("../../../lib/rules/newline-per-chained-call"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("newline-per-chained-call", rule, {
     valid: [{
@@ -145,6 +145,10 @@ ruleTester.run("newline-per-chained-call", rule, {
         }, {
             message: "Expected line break before `[aCondition ?`."
         }]
+    }, {
+        code: "foo.bar()['foo' + \u2029 + 'bar']()",
+        options: [{ ignoreChainWithDepth: 1 }],
+        errors: [{ message: "Expected line break before `['foo' + `." }]
     }]
 
 });

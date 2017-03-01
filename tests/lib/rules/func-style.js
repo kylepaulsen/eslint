@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/func-style"),
+const rule = require("../../../lib/rules/func-style"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("func-style", rule, {
     valid: [
@@ -74,12 +74,12 @@ ruleTester.run("func-style", rule, {
         },
         {
             code: "var foo = () => {};",
-            options: ["declaration", {allowArrowFunctions: true}],
+            options: ["declaration", { allowArrowFunctions: true }],
             parserOptions: { ecmaVersion: 6 }
         },
         {
             code: "var foo = () => { function foo() { this; } };",
-            options: ["declaration", {allowArrowFunctions: true}],
+            options: ["declaration", { allowArrowFunctions: true }],
             parserOptions: { ecmaVersion: 6 }
         }
     ],

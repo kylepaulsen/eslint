@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-new"),
+const rule = require("../../../lib/rules/no-new"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-new", rule, {
     valid: [
@@ -24,6 +24,6 @@ ruleTester.run("no-new", rule, {
         "var a; if (a === new Date()) { a = false; }"
     ],
     invalid: [
-        { code: "new Date()", errors: [{ message: "Do not use 'new' for side effects.", type: "ExpressionStatement"}] }
+        { code: "new Date()", errors: [{ message: "Do not use 'new' for side effects.", type: "ExpressionStatement" }] }
     ]
 });

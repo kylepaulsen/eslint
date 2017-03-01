@@ -8,13 +8,34 @@ This template is for bug reports. If you are reporting a bug, please continue on
 Note that leaving sections blank will make it difficult for us to troubleshoot and we may have to close the issue.
 -->
 
-**What version of ESLint are you using?**
+**Tell us about your environment**
+
+* **ESLint Version:**
+* **Node Version:**
+* **npm Version:**
 
 **What parser (default, Babel-ESLint, etc.) are you using?**
 
 **Please show your full configuration:**
 
+<!-- Paste your configuration below: -->
+```
+
+
+
+
+```
+
 **What did you do? Please include the actual source code causing the issue.**
+
+<!-- Paste the source code below: -->
+```js
+
+
+
+
+
+```
 
 **What did you expect to happen?**
 

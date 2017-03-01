@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/curly"),
+const rule = require("../../../lib/rules/curly"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("curly", rule, {
     valid: [
@@ -127,6 +127,14 @@ ruleTester.run("curly", rule, {
             options: ["multi-or-nest"]
         },
         {
+            code: "if (foo) { \n // line of comment \n quz = true; \n }",
+            options: ["multi-or-nest"]
+        },
+        {
+            code: "// line of comment \n if (foo) \n quz = true; \n",
+            options: ["multi-or-nest"]
+        },
+        {
             code: "while (true) \n doSomething();",
             options: ["multi-or-nest"]
         },
@@ -197,11 +205,18 @@ ruleTester.run("curly", rule, {
         {
             code: "if (true) { foo(); faa(); } else { bar(); }",
             options: ["multi", "consistent"]
+        },
+        {
+
+            // https://github.com/feross/standard/issues/664
+            code: "if (true) foo()\n;[1, 2, 3].bar()",
+            options: ["multi-line"]
         }
     ],
     invalid: [
         {
             code: "if (foo) bar()",
+            output: "if (foo) {bar()}",
             errors: [
                 {
                     message: "Expected { after 'if' condition.",
@@ -211,6 +226,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) { bar() } else baz()",
+            output: "if (foo) { bar() } else {baz()}",
             errors: [
                 {
                     message: "Expected { after 'else'.",
@@ -220,6 +236,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) { bar() } else if (faa) baz()",
+            output: "if (foo) { bar() } else if (faa) {baz()}",
             errors: [
                 {
                     message: "Expected { after 'if' condition.",
@@ -229,6 +246,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (foo) bar()",
+            output: "while (foo) {bar()}",
             errors: [
                 {
                     message: "Expected { after 'while' condition.",
@@ -238,6 +256,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "do bar(); while (foo)",
+            output: "do {bar();} while (foo)",
             errors: [
                 {
                     message: "Expected { after 'do'.",
@@ -247,6 +266,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (;foo;) bar()",
+            output: "for (;foo;) {bar()}",
             errors: [
                 {
                     message: "Expected { after 'for' condition.",
@@ -256,6 +276,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) console.log(foo)",
+            output: "for (var foo in bar) {console.log(foo)}",
             errors: [
                 {
                     message: "Expected { after 'for-in'.",
@@ -265,6 +286,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) console.log(foo)",
+            output: "for (var foo of bar) {console.log(foo)}",
             parserOptions: { ecmaVersion: 6 },
             errors: [
                 {
@@ -275,6 +297,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (;foo;) { bar() }",
+            output: "for (;foo;)  bar() ",
             options: ["multi"],
             errors: [
                 {
@@ -285,6 +308,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) { bar() }",
+            output: "if (foo)  bar() ",
             options: ["multi"],
             errors: [
                 {
@@ -295,6 +319,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (foo) { bar() }",
+            output: "while (foo)  bar() ",
             options: ["multi"],
             errors: [
                 {
@@ -305,6 +330,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) baz(); else { bar() }",
+            output: "if (foo) baz(); else  bar() ",
             options: ["multi"],
             errors: [
                 {
@@ -315,6 +341,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (true) { if (false) console.log(1) }",
+            output: "if (true)  if (false) console.log(1) ",
             options: ["multi"],
             errors: [
                 {
@@ -325,6 +352,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (a) { if (b) console.log(1); else console.log(2) } else console.log(3)",
+            output: null,
             options: ["multi"],
             errors: [
                 {
@@ -347,6 +375,19 @@ ruleTester.run("curly", rule, {
                 "        console.log(3)",
                 "}"
             ].join("\n"),
+            output: [
+                "if (0)",
+                "    console.log(0)",
+                "else if (1) {",
+                "    console.log(1)",
+                "    console.log(1)",
+                "} else ",
+                "    if (2)",
+                "        console.log(2)",
+                "    else",
+                "        console.log(3)",
+                ""
+            ].join("\n"),
             options: ["multi"],
             errors: [
                 {
@@ -359,6 +400,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) { console.log(foo) }",
+            output: "for (var foo in bar)  console.log(foo) ",
             options: ["multi"],
             errors: [
                 {
@@ -369,6 +411,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) { console.log(foo) }",
+            output: "for (var foo of bar)  console.log(foo) ",
             options: ["multi"],
             parserOptions: { ecmaVersion: 6 },
             errors: [
@@ -380,6 +423,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) \n baz()",
+            output: "if (foo) \n {baz()}",
             options: ["multi-line"],
             errors: [
                 {
@@ -390,6 +434,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (foo) \n baz()",
+            output: "while (foo) \n {baz()}",
             options: ["multi-line"],
             errors: [
                 {
@@ -400,6 +445,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (;foo;) \n bar()",
+            output: "for (;foo;) \n {bar()}",
             options: ["multi-line"],
             errors: [
                 {
@@ -410,6 +456,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (bar && \n baz) \n foo()",
+            output: "while (bar && \n baz) \n {foo()}",
             options: ["multi-line"],
             errors: [
                 {
@@ -420,6 +467,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) bar(baz, \n baz)",
+            output: "if (foo) {bar(baz, \n baz)}",
             options: ["multi-line"],
             errors: [
                 {
@@ -430,6 +478,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "do \n foo(); \n while (bar)",
+            output: "do \n {foo();} \n while (bar)",
             options: ["multi-line"],
             errors: [
                 {
@@ -440,6 +489,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) \n console.log(foo)",
+            output: "for (var foo in bar) \n {console.log(foo)}",
             options: ["multi-line"],
             errors: [
                 {
@@ -450,6 +500,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) \n console.log(1); \n console.log(2)",
+            output: "for (var foo in bar) \n {console.log(1);} \n console.log(2)",
             options: ["multi-line"],
             errors: [
                 {
@@ -460,6 +511,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) \n console.log(foo)",
+            output: "for (var foo of bar) \n {console.log(foo)}",
             options: ["multi-line"],
             parserOptions: { ecmaVersion: 6 },
             errors: [
@@ -471,6 +523,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) \n console.log(1); \n console.log(2)",
+            output: "for (var foo of bar) \n {console.log(1);} \n console.log(2)",
             options: ["multi-line"],
             parserOptions: { ecmaVersion: 6 },
             errors: [
@@ -482,6 +535,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) \n quz = { \n bar: baz, \n qux: foo \n };",
+            output: "if (foo) \n {quz = { \n bar: baz, \n qux: foo \n };}",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -492,6 +546,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (true) \n if (foo) \n doSomething(); \n else \n doSomethingElse(); \n",
+            output: "while (true) \n {if (foo) \n doSomething(); \n else \n doSomethingElse();} \n",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -502,6 +557,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (foo) { \n quz = true; \n }",
+            output: "if (foo)  \n quz = true; \n ",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -512,6 +568,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "while (true) { \n doSomething(); \n }",
+            output: "while (true)  \n doSomething(); \n ",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -522,6 +579,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var i = 0; foo; i++) { \n doSomething(); \n }",
+            output: "for (var i = 0; foo; i++)  \n doSomething(); \n ",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -532,6 +590,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) \n if (foo) console.log(1); \n else console.log(2);",
+            output: "for (var foo in bar) \n {if (foo) console.log(1); \n else console.log(2);}",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -542,6 +601,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo in bar) { if (foo) console.log(1) }",
+            output: "for (var foo in bar)  if (foo) console.log(1) ",
             options: ["multi-or-nest"],
             errors: [
                 {
@@ -552,6 +612,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) \n if (foo) console.log(1); \n else console.log(2);",
+            output: "for (var foo of bar) \n {if (foo) console.log(1); \n else console.log(2);}",
             options: ["multi-or-nest"],
             parserOptions: { ecmaVersion: 6 },
             errors: [
@@ -563,6 +624,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "for (var foo of bar) { if (foo) console.log(1) }",
+            output: "for (var foo of bar)  if (foo) console.log(1) ",
             options: ["multi-or-nest"],
             parserOptions: { ecmaVersion: 6 },
             errors: [
@@ -574,6 +636,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (true) foo(); \n else { \n bar(); \n baz(); \n }",
+            output: "if (true) {foo();} \n else { \n bar(); \n baz(); \n }",
             options: ["multi", "consistent"],
             errors: [
                 {
@@ -584,6 +647,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (true) { foo(); faa(); }\n else bar();",
+            output: "if (true) { foo(); faa(); }\n else {bar();}",
             options: ["multi", "consistent"],
             errors: [
                 {
@@ -594,6 +658,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (true) foo(); else { baz(); }",
+            output: "if (true) foo(); else  baz(); ",
             options: ["multi", "consistent"],
             errors: [
                 {
@@ -604,6 +669,7 @@ ruleTester.run("curly", rule, {
         },
         {
             code: "if (true) foo(); else if (true) faa(); else { bar(); baz(); }",
+            output: "if (true) {foo();} else if (true) {faa();} else { bar(); baz(); }",
             options: ["multi", "consistent"],
             errors: [
                 {
@@ -615,6 +681,145 @@ ruleTester.run("curly", rule, {
                     type: "IfStatement"
                 }
             ]
+        },
+        {
+            code: "do{foo();} while (bar)",
+            output: "do foo(); while (bar)",
+            options: ["multi"],
+            errors: [
+                {
+                    message: "Unnecessary { after 'do'.",
+                    type: "DoWhileStatement"
+                }
+            ]
+        },
+        {
+            code: "do{[1, 2, 3].map(bar);} while (bar)",
+            output: "do[1, 2, 3].map(bar); while (bar)",
+            options: ["multi"],
+            errors: [
+                {
+                    message: "Unnecessary { after 'do'.",
+                    type: "DoWhileStatement"
+                }
+            ]
+        },
+        {
+            code: "if (foo) {bar()} baz()",
+            output: null,
+            options: ["multi"],
+            errors: [
+                {
+                    message: "Unnecessary { after 'if' condition.",
+                    type: "IfStatement"
+                }
+            ]
+        },
+        {
+            code: "do {foo();} while (bar)",
+            output: "do foo(); while (bar)",
+            options: ["multi"],
+            errors: [
+                {
+                    message: "Unnecessary { after 'do'.",
+                    type: "DoWhileStatement"
+                }
+            ]
+        },
+
+        // Don't remove curly braces if it would cause issues due to ASI.
+        {
+            code: "if (foo) { bar }\n++baz;",
+            output: null,
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar; }\n++baz;",
+            output: "if (foo)  bar; \n++baz;",
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar++ }\nbaz;",
+            output: null,
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar }\n[1, 2, 3].map(foo);",
+            output: null,
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar }\n(1).toString();",
+            output: null,
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar }\n/regex/.test('foo');",
+            output: null,
+            options: ["multi"],
+            parserOptions: { ecmaVersion: 6 },
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { bar }\nBaz();",
+            output: "if (foo)  bar \nBaz();",
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code:
+            "if (a) {\n" +
+            "  while (b) {\n" +
+            "    c();\n" +
+            "    d();\n" +
+            "  }\n" +
+            "} else e();",
+            output:
+            "if (a) \n" +
+            "  while (b) {\n" +
+            "    c();\n" +
+            "    d();\n" +
+            "  }\n" +
+            " else e();",
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { while (bar) {} } else {}",
+            output: "if (foo)  while (bar) {}  else {}",
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { var foo = () => {} } else {}",
+            output: null,
+            options: ["multi"],
+            parserOptions: { ecmaVersion: 6 },
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { var foo = function() {} } else {}",
+            output: null,
+            options: ["multi"],
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (foo) { var foo = function*() {} } else {}",
+            output: null,
+            options: ["multi"],
+            parserOptions: { ecmaVersion: 6 },
+            errors: [{ message: "Unnecessary { after 'if' condition.", type: "IfStatement" }]
+        },
+        {
+            code: "if (true)\nfoo()\n;[1, 2, 3].bar()",
+            output: "if (true)\n{foo()\n;}[1, 2, 3].bar()",
+            options: ["multi-line"],
+            errors: [{ message: "Expected { after 'if' condition.", type: "IfStatement" }]
         }
     ]
 });

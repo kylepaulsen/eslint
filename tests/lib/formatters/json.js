@@ -9,15 +9,15 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
+const assert = require("chai").assert,
     formatter = require("../../../lib/formatters/json");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-describe("formatter:json", function() {
-    var code = [{
+describe("formatter:json", () => {
+    const code = [{
         filePath: "foo.js",
         messages: [{
             message: "Unexpected foo.",
@@ -39,8 +39,8 @@ describe("formatter:json", function() {
         }]
     }];
 
-    it("should return passed results as a JSON string without any modification", function() {
-        var result = JSON.parse(formatter(code));
+    it("should return passed results as a JSON string without any modification", () => {
+        const result = JSON.parse(formatter(code));
 
         assert.deepEqual(result, code);
     });

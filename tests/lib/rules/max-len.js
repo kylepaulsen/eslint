@@ -8,14 +8,16 @@
 //------------------------------------------------------------------------------
 // Requirements
 //------------------------------------------------------------------------------
-var rule = require("../../../lib/rules/max-len"),
+const rule = require("../../../lib/rules/max-len"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const parserOptions = { ecmaVersion: 6 };
+
+const ruleTester = new RuleTester();
 
 ruleTester.run("max-len", rule, {
     valid: [
@@ -42,47 +44,84 @@ ruleTester.run("max-len", rule, {
         "\n// Blank line on top\nvar foo = module.exports = {};\n",
         {
             code: "var foo = module.exports = {}; // really long trailing comment",
-            options: [40, 4, {ignoreComments: true}]
+            options: [40, 4, { ignoreComments: true }]
         }, {
             code: "foo(); \t// strips entire comment *and* trailing whitespace",
-            options: [6, 4, {ignoreComments: true}]
+            options: [6, 4, { ignoreComments: true }]
         }, {
             code: "// really long comment on its own line sitting here",
-            options: [40, 4, {ignoreComments: true}]
+            options: [40, 4, { ignoreComments: true }]
         },
         "var /*inline-comment*/ i = 1;",
         {
             code: "var /*inline-comment*/ i = 1; // with really long trailing comment",
-            options: [40, 4, {ignoreComments: true}]
+            options: [40, 4, { ignoreComments: true }]
         }, {
             code: "foo('http://example.com/this/is/?a=longish&url=in#here');",
-            options: [40, 4, {ignoreUrls: true}]
+            options: [40, 4, { ignoreUrls: true }]
         }, {
             code: "foo(bar(bazz('this is a long'), 'line of'), 'stuff');",
-            options: [40, 4, {ignorePattern: "foo.+bazz\\("}]
+            options: [40, 4, { ignorePattern: "foo.+bazz\\(" }]
         }, {
             code:
                 "/* hey there! this is a multiline\n" +
                 "   comment with longish lines in various places\n" +
                 "   but\n" +
                 "   with a short line-length */",
-            options: [10, 4, {ignoreComments: true}]
+            options: [10, 4, { ignoreComments: true }]
         }, {
             code:
                 "// I like short comments\n" +
                 "function butLongSourceLines() { weird(eh()) }",
-            options: [80, {tabWidth: 4, comments: 30}]
+            options: [80, { tabWidth: 4, comments: 30 }]
         }, {
             code:
                 "// Full line comment\n" +
                 "someCode(); // With a long trailing comment.",
-            options: [{code: 30, tabWidth: 4, comments: 20, ignoreTrailingComments: true}]
+            options: [{ code: 30, tabWidth: 4, comments: 20, ignoreTrailingComments: true }]
         }, {
             code: "var foo = module.exports = {}; // really long trailing comment",
-            options: [40, 4, {ignoreTrailingComments: true}]
+            options: [40, 4, { ignoreTrailingComments: true }]
         }, {
             code: "var foo = module.exports = {}; // really long trailing comment",
-            options: [40, 4, {ignoreComments: true, ignoreTrailingComments: false}]
+            options: [40, 4, { ignoreComments: true, ignoreTrailingComments: false }]
+        },
+
+        // ignoreStrings, ignoreTemplateLiterals and ignoreRegExpLiterals options
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = 'this is a very long string';",
+            options: [29, 4, { ignoreStrings: true }]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = \"this is a very long string\";",
+            options: [29, 4, { ignoreStrings: true }]
+        },
+        {
+            code: "var str = \"this is a very long string\\\nwith continuation\";",
+            options: [29, 4, { ignoreStrings: true }]
+        },
+        {
+            code: "var str = \"this is a very long string\\\nwith continuation\\\nand with another very very long continuation\\\nand ending\";",
+            options: [29, 4, { ignoreStrings: true }]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = `this is a very long string`;",
+            options: [29, 4, { ignoreTemplateLiterals: true }],
+            parserOptions
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = `this is a very long string\nand this is another line that is very long`;",
+            options: [29, 4, { ignoreTemplateLiterals: true }],
+            parserOptions
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = `this is a very long string\nand this is another line that is very long\nand here is another\n and another!`;",
+            options: [29, 4, { ignoreTemplateLiterals: true }],
+            parserOptions
+        },
+        {
+            code: "var foo = /this is a very long pattern/;",
+            options: [29, 4, { ignoreRegExpLiterals: true }]
         },
 
         // check indented comment lines - https://github.com/eslint/eslint/issues/6322
@@ -123,7 +162,13 @@ ruleTester.run("max-len", rule, {
         },
 
         // blank line
-        ""
+        "",
+
+        // Multi-code-point unicode glyphs
+        {
+            code: "'🙂😀😆😎😊😜😉👍'",
+            options: [10]
+        }
     ],
 
     invalid: [
@@ -182,7 +227,7 @@ ruleTester.run("max-len", rule, {
         },
         {
             code: "var /*this is a long non-removed inline comment*/ i = 1;",
-            options: [20, 4, {ignoreComments: true}],
+            options: [20, 4, { ignoreComments: true }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum line length of 20.",
@@ -196,7 +241,7 @@ ruleTester.run("max-len", rule, {
             code:
                 "var foobar = 'this line isn\\'t matched by the regexp';\n" +
                 "var fizzbuzz = 'but this one is matched by the regexp';\n",
-            options: [20, 4, {ignorePattern: "fizzbuzz"}],
+            options: [20, 4, { ignorePattern: "fizzbuzz" }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum line length of 20.",
@@ -208,7 +253,7 @@ ruleTester.run("max-len", rule, {
         },
         {
             code: "var longLine = 'will trigger'; // even with a comment",
-            options: [10, 4, {ignoreComments: true}],
+            options: [10, 4, { ignoreComments: true }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum line length of 10.",
@@ -254,7 +299,7 @@ ruleTester.run("max-len", rule, {
             ]
         }, {
             code: "// A comment that exceeds the max comment length.",
-            options: [80, 4, {comments: 20}],
+            options: [80, 4, { comments: 20 }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum comment line length of 20.",
@@ -265,7 +310,7 @@ ruleTester.run("max-len", rule, {
             ]
         }, {
             code: "// A comment that exceeds the max comment length.",
-            options: [{code: 20}],
+            options: [{ code: 20 }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum line length of 20.",
@@ -276,7 +321,7 @@ ruleTester.run("max-len", rule, {
             ]
         }, {
             code: "//This is very long comment with more than 40 characters which is invalid",
-            options: [40, 4, {ignoreTrailingComments: true }],
+            options: [40, 4, { ignoreTrailingComments: true }],
             errors: [
                 {
                     message: "Line 1 exceeds the maximum line length of 40.",
@@ -391,6 +436,117 @@ ruleTester.run("max-len", rule, {
                     message: "Line 3 exceeds the maximum line length of 42.",
                     type: "Program",
                     line: 3,
+                    column: 1
+                }
+            ]
+        },
+
+        // check comments with the same length as non-comments - https://github.com/eslint/eslint/issues/6564
+        {
+            code: "// This commented line has precisely 51 characters.\n" +
+                  "var x = 'This line also has exactly 51 characters';",
+            options: [20, { ignoreComments: true }],
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 20.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+
+        // ignoreStrings and ignoreTemplateLiterals options
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = 'this is a very long string';",
+            options: [29, { ignoreStrings: false, ignoreTemplateLiterals: true }],
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = /this is a very very long pattern/;",
+            options: [29, { ignoreStrings: false, ignoreRegExpLiterals: false }],
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = new RegExp('this is a very very long pattern');",
+            options: [29, { ignoreStrings: false, ignoreRegExpLiterals: true }],
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = \"this is a very long string\";",
+            options: [29, { ignoreStrings: false, ignoreTemplateLiterals: true }],
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = `this is a very long string`;",
+            options: [29, { ignoreStrings: false, ignoreTemplateLiterals: false }],
+            parserOptions,
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                }
+            ]
+        },
+        {
+            code: "var foo = veryLongIdentifier;\nvar bar = `this is a very long string\nand this is another line that is very long`;",
+            options: [29, { ignoreStrings: false, ignoreTemplateLiterals: false }],
+            parserOptions,
+            errors: [
+                {
+                    message: "Line 2 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 2,
+                    column: 1
+                },
+                {
+                    message: "Line 3 exceeds the maximum line length of 29.",
+                    type: "Program",
+                    line: 3,
+                    column: 1
+                }
+            ]
+        },
+
+        // Multi-code-point unicode glyphs
+        {
+            code: "'🙁😁😟☹️😣😖😩😱👎'",
+            options: [10],
+            errors: [
+                {
+                    message: "Line 1 exceeds the maximum line length of 10.",
+                    type: "Program",
+                    line: 1,
                     column: 1
                 }
             ]

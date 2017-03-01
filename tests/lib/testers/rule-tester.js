@@ -10,7 +10,8 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var sinon = require("sinon"),
+const sinon = require("sinon"),
+    EventEmitter = require("events"),
     eslint = require("../../../lib/eslint"),
     RuleTester = require("../../../lib/testers/rule-tester"),
     assert = require("chai").assert;
@@ -28,13 +29,20 @@ var sinon = require("sinon"),
  * RuleTester to do nothing but run code. Effectively, it() and describe()
  * just become regular functions inside of index.js, not at all related to Mocha.
  * That allows the results of this file to be untainted and therefore accurate.
+ *
+ * To assert that the right arguments are passed to RuleTester.describe/it, an
+ * event emitter is used which emits the arguments.
  */
 
+const ruleTesterTestEmitter = new EventEmitter();
+
 RuleTester.describe = function(text, method) {
+    ruleTesterTestEmitter.emit("describe", text, method);
     return method.apply(this);
 };
 
 RuleTester.it = function(text, method) {
+    ruleTesterTestEmitter.emit("it", text, method);
     return method.apply(this);
 };
 
@@ -42,73 +50,73 @@ RuleTester.it = function(text, method) {
 // Tests
 //------------------------------------------------------------------------------
 
-describe("RuleTester", function() {
+describe("RuleTester", () => {
 
-    var ruleTester;
+    let ruleTester;
 
-    beforeEach(function() {
+    beforeEach(() => {
         RuleTester.resetDefaultConfig();
         ruleTester = new RuleTester();
     });
 
-    it("should not throw an error when everything passes", function() {
+    it("should not throw an error when everything passes", () => {
 
-        assert.doesNotThrow(function() {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
                 ],
                 invalid: [
-                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression"}] }
+                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression" }] }
                 ]
             });
         });
     });
 
-    it("should throw an error when valid code is invalid", function() {
+    it("should throw an error when valid code is invalid", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "eval(foo)"
                 ],
                 invalid: [
-                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression"}] }
+                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression" }] }
                 ]
             });
         }, /Should have no errors but had 1/);
     });
 
-    it("should throw an error when valid code is invalid", function() {
+    it("should throw an error when valid code is invalid", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     { code: "eval(foo)" }
                 ],
                 invalid: [
-                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression"}] }
+                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression" }] }
                 ]
             });
         }, /Should have no errors but had 1/);
     });
 
-    it("should throw an error if invalid code is valid", function() {
+    it("should throw an error if invalid code is valid", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
                 ],
                 invalid: [
-                    { code: "Eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression"}] }
+                    { code: "Eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression" }] }
                 ]
             });
         }, /Should have 1 error but had 0/);
     });
 
-    it("should throw an error when the error message is wrong", function() {
-        assert.throws(function() {
+    it("should throw an error when the error message is wrong", () => {
+        assert.throws(() => {
             ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
 
                 // Only the invalid test matters here
@@ -119,11 +127,22 @@ describe("RuleTester", function() {
                     { code: "var foo = bar;", errors: [{ message: "Bad error message." }] }
                 ]
             });
-        }, /Error message should be /);
+        }, /Bad var\..*==.*Bad error message/);
     });
 
-    it("should throw an error when the error is neither an object nor a string", function() {
-        assert.throws(function() {
+    it("should throw an error when the error message regex does not match", () => {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [],
+                invalid: [
+                    { code: "var foo = bar;", errors: [{ message: /Bad error message/ }] }
+                ]
+            });
+        }, /Expected 'Bad var.' to match \/Bad error message\//);
+    });
+
+    it("should throw an error when the error is not a supported type", () => {
+        assert.throws(() => {
             ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
 
                 // Only the invalid test matters here
@@ -134,11 +153,11 @@ describe("RuleTester", function() {
                     { code: "var foo = bar;", errors: [42] }
                 ]
             });
-        }, /Error should be a string or object/);
+        }, /Error should be a string, object, or RegExp/);
     });
 
-    it("should throw an error when the error is a string and it does not match error message", function() {
-        assert.throws(function() {
+    it("should throw an error when the error is a string and it does not match error message", () => {
+        assert.throws(() => {
             ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
 
                 // Only the invalid test matters here
@@ -149,11 +168,24 @@ describe("RuleTester", function() {
                     { code: "var foo = bar;", errors: ["Bad error message."] }
                 ]
             });
-        }, /Error message should be /);
+        }, /Bad var\..*==.*Bad error message/);
     });
 
-    it("should not throw an error when the error is a string and it matches error message", function() {
-        assert.doesNotThrow(function() {
+    it("should throw an error when the error is a string and it does not match error message", () => {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+
+                valid: [
+                ],
+                invalid: [
+                    { code: "var foo = bar;", errors: [/Bad error message/] }
+                ]
+            });
+        }, /Expected 'Bad var.' to match \/Bad error message\//);
+    });
+
+    it("should not throw an error when the error is a string and it matches error message", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
 
                 // Only the invalid test matters here
@@ -167,37 +199,122 @@ describe("RuleTester", function() {
         });
     });
 
-    it("should throw an error when the expected output doesn't match", function() {
+    it("should not throw an error when the error is a regex and it matches error message", () => {
+        assert.doesNotThrow(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [],
+                invalid: [
+                    { code: "var foo = bar;", errors: [/^Bad var/] }
+                ]
+            });
+        });
+    });
 
-        assert.throws(function() {
+    it("should not throw an error when the error is a regex in an object and it matches error message", () => {
+        assert.doesNotThrow(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [],
+                invalid: [
+                    { code: "var foo = bar;", errors: [{ message: /^Bad var/ }] }
+                ]
+            });
+        });
+    });
+
+    it("should throw an error when the expected output doesn't match", () => {
+
+        assert.throws(() => {
             ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
                 valid: [
                     "bar = baz;"
                 ],
                 invalid: [
-                    { code: "var foo = bar;", output: "foo = bar", errors: [{ message: "Bad var.", type: "VariableDeclaration"}] }
+                    { code: "var foo = bar;", output: "foo = bar", errors: [{ message: "Bad var.", type: "VariableDeclaration" }] }
                 ]
             });
         }, /Output is incorrect/);
     });
 
-    it("should throw an error if invalid code specifies wrong type", function() {
+    it("should throw an error when the expected output doesn't match and errors is just a number", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "var foo = bar;", output: "foo = bar", errors: 1 }
+                ]
+            });
+        }, /Output is incorrect/);
+    });
+
+    it("should not throw an error when the expected output is null and no errors produce output", () => {
+        assert.doesNotThrow(() => {
+            ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "eval(x)", errors: 1, output: null },
+                    { code: "eval(x); eval(y);", errors: 2, output: null }
+                ]
+            });
+        });
+    });
+
+    it("should throw an error when the expected output is null and problems produce output", () => {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "var foo = bar;", output: null, errors: 1 }
+                ]
+            });
+        }, /Expected no autofixes to be suggested/);
+
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "var foo = bar; var qux = boop;", output: null, errors: 2 }
+                ]
+            });
+        }, /Expected no autofixes to be suggested/);
+    });
+
+    it("should throw an error when the expected output is null and only some problems produce output", () => {
+        assert.throws(() => {
+            ruleTester.run("fixes-one-problem", require("../../fixtures/testers/rule-tester/fixes-one-problem"), {
+                valid: [],
+                invalid: [
+                    { code: "foo", output: null, errors: 2 }
+                ]
+            });
+        }, /Expected no autofixes to be suggested/);
+    });
+
+    it("should throw an error if invalid code specifies wrong type", () => {
+
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
                 ],
                 invalid: [
-                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression2"}] }
+                    { code: "eval(foo)", errors: [{ message: "eval sucks.", type: "CallExpression2" }] }
                 ]
             });
-        }, /Error type should be CallExpression2/);
+        }, /Error type should be CallExpression2, found CallExpression/);
     });
 
-    it("should throw an error if invalid code specifies wrong line", function() {
+    it("should throw an error if invalid code specifies wrong line", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
@@ -209,8 +326,8 @@ describe("RuleTester", function() {
         }, /Error line should be 5/);
     });
 
-    it("should not skip line assertion if line is a falsy value", function() {
-        assert.throws(function() {
+    it("should not skip line assertion if line is a falsy value", () => {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
@@ -222,40 +339,66 @@ describe("RuleTester", function() {
         }, /Error line should be 0/);
     });
 
-    it("should throw an error if invalid code specifies wrong column", function() {
-        var wrongColumn = 10,
+    it("should throw an error if invalid code specifies wrong column", () => {
+        const wrongColumn = 10,
             expectedErrorMessage = "Error column should be 1";
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
-                valid: [ "Eval(foo)" ],
-                invalid: [ {
+                valid: ["Eval(foo)"],
+                invalid: [{
                     code: "eval(foo)",
-                    errors: [ {
+                    errors: [{
                         message: "eval sucks.",
                         column: wrongColumn
-                    } ]
-                } ]
+                    }]
+                }]
             });
         }, expectedErrorMessage);
     });
 
-    it("should not skip column assertion if column is a falsy value", function() {
+    it("should not skip column assertion if column is a falsy value", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
-                valid: [ "Eval(foo)" ],
-                invalid: [ {
+                valid: ["Eval(foo)"],
+                invalid: [{
                     code: "var foo; eval(foo)",
-                    errors: [ { message: "eval sucks.", column: 0 } ]
-                } ]
+                    errors: [{ message: "eval sucks.", column: 0 }]
+                }]
             });
         }, /Error column should be 0/);
     });
 
-    it("should throw an error if invalid code has the wrong number of errors", function() {
+    it("should throw an error if invalid code specifies wrong endLine", () => {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "var foo = bar;", output: "foo = bar", errors: [{ message: "Bad var.", type: "VariableDeclaration", endLine: 10 }] }
+                ]
+            });
+        }, "Error endLine should be 10");
+    });
 
-        assert.throws(function() {
+    it("should throw an error if invalid code specifies wrong endColumn", () => {
+        assert.throws(() => {
+            ruleTester.run("no-var", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "bar = baz;"
+                ],
+                invalid: [
+                    { code: "var foo = bar;", output: "foo = bar", errors: [{ message: "Bad var.", type: "VariableDeclaration", endColumn: 10 }] }
+                ]
+            });
+        }, "Error endColumn should be 10");
+    });
+
+    it("should throw an error if invalid code has the wrong number of errors", () => {
+
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
@@ -270,8 +413,8 @@ describe("RuleTester", function() {
         }, /Should have 2 errors but had 1/);
     });
 
-    it("should throw an error if invalid code does not have errors", function() {
-        assert.throws(function() {
+    it("should throw an error if invalid code does not have errors", () => {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
@@ -283,9 +426,9 @@ describe("RuleTester", function() {
         }, /Did not specify errors for an invalid test of no-eval/);
     });
 
-    it("should throw an error if invalid code has the wrong explicit number of errors", function() {
+    it("should throw an error if invalid code has the wrong explicit number of errors", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
                     "Eval(foo)"
@@ -298,9 +441,9 @@ describe("RuleTester", function() {
     });
 
     // https://github.com/eslint/eslint/issues/4779
-    it("should throw an error if there's a parsing error and output doesn't match", function() {
+    it("should throw an error if there's a parsing error and output doesn't match", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [],
                 invalid: [
@@ -310,20 +453,20 @@ describe("RuleTester", function() {
         }, /fatal parsing error/i);
     });
 
-    it("should not throw an error if invalid code has at least an expected empty error object", function() {
-        assert.doesNotThrow(function() {
+    it("should not throw an error if invalid code has at least an expected empty error object", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
-                valid: [ "Eval(foo)" ],
-                invalid: [ {
+                valid: ["Eval(foo)"],
+                invalid: [{
                     code: "eval(foo)",
-                    errors: [ {} ]
-                } ]
+                    errors: [{}]
+                }]
             });
         });
     });
 
-    it("should pass-through the globals config of valid tests to the to rule", function() {
-        assert.doesNotThrow(function() {
+    it("should pass-through the globals config of valid tests to the to rule", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-test-global", require("../../fixtures/testers/rule-tester/no-test-global"), {
                 valid: [
                     "var test = 'foo'",
@@ -336,15 +479,15 @@ describe("RuleTester", function() {
                         global: { test: true }
                     }
                 ],
-                invalid: [ { code: "bar", errors: 1 } ]
+                invalid: [{ code: "bar", errors: 1 }]
             });
         });
     });
 
-    it("should pass-through the globals config of invalid tests to the to rule", function() {
-        assert.doesNotThrow(function() {
+    it("should pass-through the globals config of invalid tests to the to rule", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-test-global", require("../../fixtures/testers/rule-tester/no-test-global"), {
-                valid: [ "var test = 'foo'" ],
+                valid: ["var test = 'foo'"],
                 invalid: [
                     {
                         code: "var test = 'foo'; var foo = 'bar'",
@@ -353,20 +496,20 @@ describe("RuleTester", function() {
                     {
                         code: "var test = 'foo'",
                         globals: { foo: true },
-                        errors: [ { message: "Global variable foo should not be used." } ]
+                        errors: [{ message: "Global variable foo should not be used." }]
                     },
                     {
                         code: "var test = 'foo'",
                         global: { foo: true },
-                        errors: [ { message: "Global variable foo should not be used." } ]
+                        errors: [{ message: "Global variable foo should not be used." }]
                     }
                 ]
             });
         });
     });
 
-    it("should pass-through the settings config to rules", function() {
-        assert.doesNotThrow(function() {
+    it("should pass-through the settings config to rules", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-test-settings", require("../../fixtures/testers/rule-tester/no-test-settings"), {
                 valid: [
                     {
@@ -382,7 +525,7 @@ describe("RuleTester", function() {
         });
     });
 
-    it("should pass-through the filename to the rule", function() {
+    it("should pass-through the filename to the rule", () => {
         (function() {
             ruleTester.run("", require("../../fixtures/testers/rule-tester/no-test-filename"), {
                 valid: [
@@ -403,30 +546,30 @@ describe("RuleTester", function() {
         }());
     });
 
-    it("should pass-through the options to the rule", function() {
-        assert.doesNotThrow(function() {
+    it("should pass-through the options to the rule", () => {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-invalid-args", require("../../fixtures/testers/rule-tester/no-invalid-args"), {
                 valid: [
                     {
                         code: "var foo = 'bar'",
-                        options: [ false ]
+                        options: [false]
                     }
                 ],
                 invalid: [
                     {
                         code: "var foo = 'bar'",
-                        options: [ true ],
-                        errors: [ { message: "Invalid args" } ]
+                        options: [true],
+                        errors: [{ message: "Invalid args" }]
                     }
                 ]
             });
         });
     });
 
-    it("should pass-through the parser to the rule", function() {
+    it("should pass-through the parser to the rule", () => {
 
-        assert.doesNotThrow(function() {
-            var spy = sinon.spy(eslint, "verify");
+        assert.doesNotThrow(() => {
+            const spy = sinon.spy(eslint, "verify");
 
             ruleTester.run("no-eval", require("../../fixtures/testers/rule-tester/no-eval"), {
                 valid: [
@@ -438,7 +581,7 @@ describe("RuleTester", function() {
                     {
                         code: "eval(foo)",
                         parser: "esprima",
-                        errors: [ {} ]
+                        errors: [{}]
                     }
                 ]
             });
@@ -446,9 +589,9 @@ describe("RuleTester", function() {
         });
     });
 
-    it("should prevent invalid options schemas", function() {
+    it("should prevent invalid options schemas", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-invalid-schema", require("../../fixtures/testers/rule-tester/no-invalid-schema"), {
                 valid: [
                     "var answer = 6 * 7;",
@@ -462,9 +605,9 @@ describe("RuleTester", function() {
 
     });
 
-    it("should prevent schema violations in options", function() {
+    it("should prevent schema violations in options", () => {
 
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("no-schema-violation", require("../../fixtures/testers/rule-tester/no-schema-violation"), {
                 valid: [
                     "var answer = 6 * 7;",
@@ -478,24 +621,24 @@ describe("RuleTester", function() {
 
     });
 
-    it("should pass-through the tester config to the rule", function() {
+    it("should pass-through the tester config to the rule", () => {
         ruleTester = new RuleTester({
             global: { test: true }
         });
 
-        assert.doesNotThrow(function() {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-test-global", require("../../fixtures/testers/rule-tester/no-test-global"), {
                 valid: [
                     "var test = 'foo'",
                     "var test2 = test"
                 ],
-                invalid: [ { code: "bar", errors: 1, global: { foo: true } } ]
+                invalid: [{ code: "bar", errors: 1, global: { foo: true } }]
             });
         });
     });
 
-    it("should correctly set the global configuration", function() {
-        var config = { global: { test: true } };
+    it("should correctly set the global configuration", () => {
+        const config = { global: { test: true } };
 
         RuleTester.setDefaultConfig(config);
         assert(
@@ -504,8 +647,8 @@ describe("RuleTester", function() {
         );
     });
 
-    it("should correctly reset the global configuration", function() {
-        var config = { global: { test: true } };
+    it("should correctly reset the global configuration", () => {
+        const config = { global: { test: true } };
 
         RuleTester.setDefaultConfig(config);
         RuleTester.resetDefaultConfig();
@@ -516,12 +659,12 @@ describe("RuleTester", function() {
         );
     });
 
-    it("should enforce the global configuration to be an object", function() {
+    it("should enforce the global configuration to be an object", () => {
 
         /**
          * Set the default config for the rules tester
-         * @param {object} config configuration object
-         * @returns {function} Function to be executed
+         * @param {Object} config configuration object
+         * @returns {Function} Function to be executed
          * @private
          */
         function setConfig(config) {
@@ -537,25 +680,25 @@ describe("RuleTester", function() {
         assert.throw(setConfig(true));
     });
 
-    it("should pass-through the global config to the tester then to the to rule", function() {
-        var config = { global: { test: true } };
+    it("should pass-through the global config to the tester then to the to rule", () => {
+        const config = { global: { test: true } };
 
         RuleTester.setDefaultConfig(config);
         ruleTester = new RuleTester();
 
-        assert.doesNotThrow(function() {
+        assert.doesNotThrow(() => {
             ruleTester.run("no-test-global", require("../../fixtures/testers/rule-tester/no-test-global"), {
                 valid: [
                     "var test = 'foo'",
                     "var test2 = test"
                 ],
-                invalid: [ { code: "bar", errors: 1, global: { foo: true } } ]
+                invalid: [{ code: "bar", errors: 1, global: { foo: true } }]
             });
         });
     });
 
-    it("should throw an error if AST was modified", function() {
-        assert.throws(function() {
+    it("should throw an error if AST was modified", () => {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast"), {
                 valid: [
                     "var foo = 0;"
@@ -563,18 +706,18 @@ describe("RuleTester", function() {
                 invalid: []
             });
         }, "Rule should not modify AST.");
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast"), {
                 valid: [],
                 invalid: [
-                    {code: "var bar = 0;", errors: ["error"]}
+                    { code: "var bar = 0;", errors: ["error"] }
                 ]
             });
         }, "Rule should not modify AST.");
     });
 
-    it("should throw an error if AST was modified (at Program)", function() {
-        assert.throws(function() {
+    it("should throw an error if AST was modified (at Program)", () => {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-first"), {
                 valid: [
                     "var foo = 0;"
@@ -582,18 +725,18 @@ describe("RuleTester", function() {
                 invalid: []
             });
         }, "Rule should not modify AST.");
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-first"), {
                 valid: [],
                 invalid: [
-                    {code: "var bar = 0;", errors: ["error"]}
+                    { code: "var bar = 0;", errors: ["error"] }
                 ]
             });
         }, "Rule should not modify AST.");
     });
 
-    it("should throw an error if AST was modified (at Program:exit)", function() {
-        assert.throws(function() {
+    it("should throw an error if AST was modified (at Program:exit)", () => {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), {
                 valid: [
                     "var foo = 0;"
@@ -601,13 +744,138 @@ describe("RuleTester", function() {
                 invalid: []
             });
         }, "Rule should not modify AST.");
-        assert.throws(function() {
+        assert.throws(() => {
             ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), {
                 valid: [],
                 invalid: [
-                    {code: "var bar = 0;", errors: ["error"]}
+                    { code: "var bar = 0;", errors: ["error"] }
                 ]
             });
         }, "Rule should not modify AST.");
+    });
+
+    it("should throw an error if no test scenarios given", () => {
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"));
+        }, "Test Scenarios for rule foo : Could not find test scenario object");
+    });
+
+    it("should throw an error if no acceptable test scenario object is given", () => {
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), []);
+        }, "Test Scenarios for rule foo is invalid:\nCould not find any valid test scenarios\nCould not find any invalid test scenarios");
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), "");
+        }, "Test Scenarios for rule foo : Could not find test scenario object");
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), 2);
+        }, "Test Scenarios for rule foo : Could not find test scenario object");
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), {});
+        }, "Test Scenarios for rule foo is invalid:\nCould not find any valid test scenarios\nCould not find any invalid test scenarios");
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), {
+                valid: []
+            });
+        }, "Test Scenarios for rule foo is invalid:\nCould not find any invalid test scenarios");
+        assert.throws(() => {
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/modify-ast-at-last"), {
+                invalid: []
+            });
+        }, "Test Scenarios for rule foo is invalid:\nCould not find any valid test scenarios");
+    });
+
+    describe("naming test cases", () => {
+
+        /**
+         * Asserts that a particular value will be emitted from an EventEmitter.
+         * @param {EventEmitter} emitter The emitter that should emit a value
+         * @param {string} emitType The type of emission to listen for
+         * @param {*} expectedValue The value that should be emitted
+         * @returns {Promise} A Promise that fulfills if the value is emitted, and rejects if something else is emitted.
+         * The Promise will be indefinitely pending if no value is emitted.
+         */
+        function assertEmitted(emitter, emitType, expectedValue) {
+            return new Promise((resolve, reject) => {
+                emitter.once(emitType, emittedValue => {
+                    if (emittedValue === expectedValue) {
+                        resolve();
+                    } else {
+                        reject(new Error(`Expected ${expectedValue} to be emitted but ${emittedValue} was emitted instead.`));
+                    }
+                });
+            });
+        }
+
+        it("should use the first argument as the name of the test suite", () => {
+            const assertion = assertEmitted(ruleTesterTestEmitter, "describe", "this-is-a-rule-name");
+
+            ruleTester.run("this-is-a-rule-name", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [],
+                invalid: []
+            });
+
+            return assertion;
+        });
+
+        it("should use the test code as the name of the tests for valid code (string form)", () => {
+            const assertion = assertEmitted(ruleTesterTestEmitter, "it", "valid(code);");
+
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    "valid(code);"
+                ],
+                invalid: []
+            });
+
+            return assertion;
+        });
+
+        it("should use the test code as the name of the tests for valid code (object form)", () => {
+            const assertion = assertEmitted(ruleTesterTestEmitter, "it", "valid(code);");
+
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    {
+                        code: "valid(code);"
+                    }
+                ],
+                invalid: []
+            });
+
+            return assertion;
+        });
+
+        it("should use the test code as the name of the tests for invalid code", () => {
+            const assertion = assertEmitted(ruleTesterTestEmitter, "it", "var x = invalid(code);");
+
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [],
+                invalid: [
+                    {
+                        code: "var x = invalid(code);",
+                        errors: 1
+                    }
+                ]
+            });
+
+            return assertion;
+        });
+
+        // https://github.com/eslint/eslint/issues/8142
+        it("should use the empty string as the name of the test if the test case is an empty string", () => {
+            const assertion = assertEmitted(ruleTesterTestEmitter, "it", "");
+
+            ruleTester.run("foo", require("../../fixtures/testers/rule-tester/no-var"), {
+                valid: [
+                    {
+                        code: ""
+                    }
+                ],
+                invalid: []
+            });
+
+            return assertion;
+        });
     });
 });

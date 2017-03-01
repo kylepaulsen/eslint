@@ -43,7 +43,7 @@ if (a) {
 /**/var b; // NO ERROR: single line multi-line comments followed by code is OK
 /*
  *
- */var b; // ERROR: multi-line comments followed by code is not OK
+*/ var b; // ERROR: multi-line comments followed by code is not OK
 
 var arr = [
   a,
@@ -135,8 +135,8 @@ switch (a) {
 }
 
 a.b('hi')
-   .c(a.b()) // NO ERROR: DON'T VALIDATE MULTILINE STATEMENTS
-   .d(); // NO ERROR: DON'T VALIDATE MULTILINE STATEMENTS
+  .c(a.b()) // <-
+  .d(); // <-
 
 if ( a ) {
   if ( b ) {

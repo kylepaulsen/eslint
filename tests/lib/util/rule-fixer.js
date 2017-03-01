@@ -8,26 +8,20 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
-    RuleFixer = require("../../../lib/util/rule-fixer");
+const assert = require("chai").assert,
+    ruleFixer = require("../../../lib/util/rule-fixer");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-describe("RuleFixer", function() {
+describe("RuleFixer", () => {
 
-    var fixer;
+    describe("insertTextBefore", () => {
 
-    beforeEach(function() {
-        fixer = new RuleFixer();
-    });
+        it("should return an object with the correct information when called", () => {
 
-    describe("insertTextBefore", function() {
-
-        it("should return an object with the correct information when called", function() {
-
-            var result = fixer.insertTextBefore({ range: [0, 1] }, "Hi");
+            const result = ruleFixer.insertTextBefore({ range: [0, 1] }, "Hi");
 
             assert.deepEqual(result, {
                 range: [0, 0],
@@ -38,11 +32,11 @@ describe("RuleFixer", function() {
 
     });
 
-    describe("insertTextBeforeRange", function() {
+    describe("insertTextBeforeRange", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.insertTextBeforeRange([0, 1], "Hi");
+            const result = ruleFixer.insertTextBeforeRange([0, 1], "Hi");
 
             assert.deepEqual(result, {
                 range: [0, 0],
@@ -53,26 +47,11 @@ describe("RuleFixer", function() {
 
     });
 
-    describe("insertTextAfter", function() {
+    describe("insertTextAfter", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.insertTextAfter({ range: [0, 1] }, "Hi");
-
-            assert.deepEqual(result, {
-                range: [1, 1],
-                text: "Hi"
-            });
-
-        });
-
-    });
-
-    describe("insertTextAfterRange", function() {
-
-        it("should return an object with the correct information when called", function() {
-
-            var result = fixer.insertTextAfterRange([0, 1], "Hi");
+            const result = ruleFixer.insertTextAfter({ range: [0, 1] }, "Hi");
 
             assert.deepEqual(result, {
                 range: [1, 1],
@@ -83,11 +62,26 @@ describe("RuleFixer", function() {
 
     });
 
-    describe("removeAfter", function() {
+    describe("insertTextAfterRange", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.remove({ range: [0, 1] });
+            const result = ruleFixer.insertTextAfterRange([0, 1], "Hi");
+
+            assert.deepEqual(result, {
+                range: [1, 1],
+                text: "Hi"
+            });
+
+        });
+
+    });
+
+    describe("removeAfter", () => {
+
+        it("should return an object with the correct information when called", () => {
+
+            const result = ruleFixer.remove({ range: [0, 1] });
 
             assert.deepEqual(result, {
                 range: [0, 1],
@@ -98,11 +92,11 @@ describe("RuleFixer", function() {
 
     });
 
-    describe("removeAfterRange", function() {
+    describe("removeAfterRange", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.removeRange([0, 1]);
+            const result = ruleFixer.removeRange([0, 1]);
 
             assert.deepEqual(result, {
                 range: [0, 1],
@@ -114,11 +108,11 @@ describe("RuleFixer", function() {
     });
 
 
-    describe("replaceText", function() {
+    describe("replaceText", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.replaceText({ range: [0, 1] }, "Hi");
+            const result = ruleFixer.replaceText({ range: [0, 1] }, "Hi");
 
             assert.deepEqual(result, {
                 range: [0, 1],
@@ -129,11 +123,11 @@ describe("RuleFixer", function() {
 
     });
 
-    describe("replaceTextRange", function() {
+    describe("replaceTextRange", () => {
 
-        it("should return an object with the correct information when called", function() {
+        it("should return an object with the correct information when called", () => {
 
-            var result = fixer.replaceTextRange([0, 1], "Hi");
+            const result = ruleFixer.replaceTextRange([0, 1], "Hi");
 
             assert.deepEqual(result, {
                 range: [0, 1],

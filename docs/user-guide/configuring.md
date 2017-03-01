@@ -3,7 +3,7 @@
 ESLint is designed to be completely configurable, meaning you can turn off every rule and run only with basic syntax validation, or mix and match the bundled rules and your custom rules to make ESLint perfect for your project. There are two primary ways to configure ESLint:
 
 1. **Configuration Comments** - use JavaScript comments to embed configuration information directly into a file.
-1. **Configuration Files** - use a JavaScript, JSON or YAML file to specify configuration information for an entire directory and all of its subdirectories. This can be in the form of an [.eslintrc.*](#configuration-file-formats) file or an `eslintConfig` field in a `package.json` file, both of which ESLint will look for and read automatically, or you can specify a configuration file on the [command line](command-line-interface).
+1. **Configuration Files** - use a JavaScript, JSON or YAML file to specify configuration information for an entire directory and all of its subdirectories. This can be in the form of an [.eslintrc.*](#configuration-file-formats) file or an `eslintConfig` field in a [`package.json`](https://docs.npmjs.com/files/package.json) file, both of which ESLint will look for and read automatically, or you can specify a configuration file on the [command line](command-line-interface).
 
 There are several pieces of information that can be configured:
 
@@ -15,13 +15,13 @@ All of these options give you fine-grained control over how ESLint treats your c
 
 ## Specifying Parser Options
 
-ESLint allows you to specify the JavaScript language options you want to support. By default, ESLint supports only ECMAScript 5 syntax. You can override that setting to enable support for ECMAScript 6 and 7 as well as [JSX](http://facebook.github.io/jsx/) by using parser options.
+ESLint allows you to specify the JavaScript language options you want to support. By default, ESLint expects ECMAScript 5 syntax. You can override that setting to enable support for other ECMAScript versions as well as JSX by using parser options.
 
 Please note that supporting JSX syntax is not the same as supporting React. React applies specific semantics to JSX syntax that ESLint doesn't recognize. We recommend using [eslint-plugin-react](https://github.com/yannickcr/eslint-plugin-react) if you are using React and want React semantics.
 
 Parser options are set in your `.eslintrc.*` file by using the `parserOptions` property. The available options are:
 
-* `ecmaVersion` - set to 3, 5 (default), 6, or 7 to specify the version of ECMAScript you want to use.
+* `ecmaVersion` - set to 3, 5 (default), 6, 7, or 8 to specify the version of ECMAScript syntax you want to use. You can also set to 2015 (same as 6), 2016 (same as 7), or 2017 (same as 8) to use the year-based naming.
 * `sourceType` - set to `"script"` (default) or `"module"` if your code is in ECMAScript modules.
 * `ecmaFeatures` - an object indicating which additional language features you'd like to use:
     * `globalReturn` - allow `return` statements in the global scope
@@ -84,7 +84,7 @@ An environment defines global variables that are predefined. The available envir
 * `node` - Node.js global variables and Node.js scoping.
 * `commonjs` - CommonJS global variables and CommonJS scoping (use this for browser-only code that uses Browserify/WebPack).
 * `shared-node-browser` - Globals common to both Node and Browser.
-* `es6` - enable all ECMAScript 6 features except for modules.
+* `es6` - enable all ECMAScript 6 features except for modules (this automatically sets the `ecmaVersion` parser option to 6).
 * `worker` - web workers global variables.
 * `amd` - defines `require()` and `define()` as global variables as per the [amd](https://github.com/amdjs/amdjs-api/wiki/AMD) spec.
 * `mocha` - adds all of the Mocha testing global variables.
@@ -113,7 +113,7 @@ Environments can be specified inside of a file, in configuration files or using 
 To specify environments using a comment inside of your JavaScript file, use the following format:
 
 ```js
-/*eslint-env node, mocha */
+/* eslint-env node, mocha */
 ```
 
 This enables Node.js and Mocha environments.
@@ -227,7 +227,7 @@ And in YAML:
 
 These examples allow `var1` to be overwritten in your code, but disallow it for `var2`.
 
-**Note:** Enable the [no-native-reassign](../rules/no-native-reassign.md) rule to disallow modifications to read-only global variables in your code.
+**Note:** Enable the [no-global-assign](../rules/no-global-assign.md) rule to disallow modifications to read-only global variables in your code.
 
 ## Configuring Plugins
 
@@ -415,6 +415,12 @@ alert('foo'); // eslint-disable-line no-alert, quotes, semi
 alert('foo');
 ```
 
+All of the above methods also work for plugin rules. For example, to disable `eslint-plugin-example`'s `rule-name` rule, combine the plugin's name (`example`) and the rule's name (`rule-name`) into `example/rule-name`:
+
+```js
+foo(); // eslint-disable-line example/rule-name
+```
+
 **Note:** Comments that disable warnings for a portion of a file tell ESLint not to report rule violations for the disabled code. ESLint still parses the entire file, however, so disabled code still needs to be syntactically valid JavaScript.
 
 ## Adding Shared Settings
@@ -560,12 +566,18 @@ ESLint extends configurations recursively so a base configuration can also have 
 The `rules` property can do any of the following to extend (or override) the set of rules:
 
 * enable additional rules
-* override default options for rules from base configurations
-* disable rules from base configurations
+* change an inherited rule's severity without changing its options:
+    * Base config: `"eqeqeq": ["error", "allow-null"]`
+    * Derived config: `"eqeqeq": "warn"`
+    * Resulting actual config: `"eqeqeq": ["warn", "allow-null"]`
+* override options for rules from base configurations:
+    * Base config: `"quotes": ["error", "single", "avoid-escape"]`
+    * Derived config: `"quotes": ["error", "single"]`
+    * Resulting actual config: `"quotes": ["error", "single"]`
 
 ### Using `"eslint:recommended"`
 
-An `extends` property value `"eslint:recommended"` enables a subset of core rules that report common problems, which have a check mark (recommended) on the [rules page](../docs/rules/). The recommended subset can change only at major versions of ESLint.
+An `extends` property value `"eslint:recommended"` enables a subset of core rules that report common problems, which have a check mark (recommended) on the [rules page](../rules/). The recommended subset can change only at major versions of ESLint.
 
 If your configuration extends the recommended rules: after you upgrade to a newer major version of ESLint, review the reported problems before you use the `--fix` option on the [command line](./command-line-interface#fix), so you know if a new fixable recommended rule will make changes to the code.
 
@@ -716,7 +728,7 @@ Both the JSON and YAML configuration file formats support comments (`package.jso
 
 ## Specifying File extensions to Lint
 
-Currently the sole method for telling ESLint which file extensions to lint is by specifying a comma separated list of extensions using the [`--ext`](./command-line-interface#ext) command line option.
+Currently the sole method for telling ESLint which file extensions to lint is by specifying a comma separated list of extensions using the [`--ext`](./command-line-interface#ext) command line option. Note this flag only takes effect in conjunction with directories, and will be ignored if used with filenames or glob patterns.
 
 ## Ignoring Files and Directories
 

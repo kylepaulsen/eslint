@@ -1,10 +1,13 @@
 # Enforce spacing around the `*` in `yield*` expressions (yield-star-spacing)
 
-(fixable) The `--fix` option on the [command line](../user-guide/command-line-interface#fix) automatically fixes problems reported by this rule.
-
 ## Rule Details
 
 This rule enforces spacing around the `*` in `yield*` expressions.
+
+To use this rule you either need to [use the `es6` environment](../user-guide/configuring.md#specifying-environments) or
+[set `ecmaVersion` to `6` in `parserOptions`](../user-guide/configuring.md#specifying-parser-options).
+
+## Options
 
 The rule takes one option, an object, which has two keys `before` and `after` having boolean values `true` or `false`.
 
@@ -31,7 +34,11 @@ The option also has a string shorthand:
 "yield-star-spacing": ["error", "after"]
 ```
 
-When using `"after"` this spacing will be enforced:
+## Examples
+
+### after
+
+Examples of **correct** code for this rule with the default `"after"` option:
 
 ```js
 /*eslint yield-star-spacing: ["error", "after"]*/
@@ -42,7 +49,9 @@ function* generator() {
 }
 ```
 
-When using `"before"` this spacing will be enforced:
+### before
+
+Examples of **correct** code for this rule with the `"before"` option:
 
 ```js
 /*eslint yield-star-spacing: ["error", "before"]*/
@@ -53,7 +62,9 @@ function *generator() {
 }
 ```
 
-When using `"both"` this spacing will be enforced:
+### both
+
+Examples of **correct** code for this rule with the `"both"` option:
 
 ```js
 /*eslint yield-star-spacing: ["error", "both"]*/
@@ -64,7 +75,9 @@ function * generator() {
 }
 ```
 
-When using `"neither"` this spacing will be enforced:
+### neither
+
+Examples of **correct** code for this rule with the `"neither"` option:
 
 ```js
 /*eslint yield-star-spacing: ["error", "neither"]*/
@@ -74,9 +87,6 @@ function*generator() {
   yield*other();
 }
 ```
-
-To use this rule you either need to [use the `es6` environment](../user-guide/configuring.md#specifying-environments) or
-[set `ecmaVersion` to `6` in `parserOptions`](../user-guide/configuring.md#specifying-parser-options).
 
 ## When Not To Use It
 

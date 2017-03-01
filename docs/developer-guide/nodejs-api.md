@@ -51,7 +51,7 @@ var codeLines = SourceCode.splitLines(code);
 
 ## linter
 
-The `linter` object does the actual evaluation of the JavaScript code. It doesn't do any filesystem operations, it simply parses and reports on the code. You can retrieve `linter` like this:
+The `linter` object does the actual evaluation of the JavaScript code. It doesn't do any filesystem operations, it simply parses and reports on the code. In particular, the `linter` object does not process configuration objects or files. You can retrieve `linter` like this:
 
 ```js
 var linter = require("eslint").linter;
@@ -60,7 +60,8 @@ var linter = require("eslint").linter;
 The most important method on `linter` is `verify()`, which initiates linting of the given text. This method accepts four arguments:
 
 * `code` - the source code to lint (a string or instance of `SourceCode`).
-* `config` - a configuration object that is equivalent to an eslintrc file.
+* `config` - a configuration object that has been processed and normalized by CLIEngine using eslintrc files and/or other configuration arguments.
+    * **Note**: If you want to lint text and have your configuration be read and processed, use CLIEngine's [`executeOnFiles`](#executeonfiles) or [`executeOnText`](#executeontext) instead.
 * `optionsOrFilename` - (optional) Additional options for this run or a string representing the filename to associate with the code being linted.
     * `filename` - (optional) the filename to associate with the source code.
     * `saveState` - (optional) see below. This will override any value passed as the fourth argument if an options object is used here instead of the filename.
@@ -119,7 +120,11 @@ The information available for each linting message is:
 * `ruleId` - the ID of the rule that triggered the messages (or null if `fatal` is true).
 * `severity` - either 1 or 2, depending on your configuration.
 * `source` - the line of code where the problem is (or empty string if it can't be found).
+* `endColumn` - the end column of the range on which the error occurred (this property is omitted if it's not range).
+* `endLine` - the end line of the range on which the error occurred (this property is omitted if it's not range).
 * `fix` - an object describing the fix for the problem (this property is omitted if no fix is available).
+
+**Please note**: the `source` property will be removed from the linting messages in an upcoming breaking release. If you depend on this property, you can still use the `getSourceCode` method described below to get the line of code for each message.
 
 You can also get an instance of the `SourceCode` object used inside of `linter` by using the `getSourceCode()` method:
 
@@ -151,23 +156,28 @@ var CLIEngine = require("eslint").CLIEngine;
 
 The `CLIEngine` is a constructor, and you can create a new instance by passing in the options you want to use. The available options are:
 
-* `configFile` - The configuration file to use (default: null). Corresponds to `-c`.
-* `envs` - An array of environments to load (default: empty array). Corresponds to `--env`.
-* `extensions` - An array of filename extensions that should be checked for code. The default is an array containing just `".js"`. Corresponds to `--ext`.
-* `globals` - An array of global variables to declare (default: empty array). Corresponds to `--global`.
-* `fix` - True indicates that fixes should be included with the output report, and that errors and warnings should not be listed if they can be fixed. However, the files on disk will not be changed. To persist changes to disk, call [`outputFixes()`](#outputfixes).
-* `ignore` - False disables use of `.eslintignore`, `ignorePath` and `ignorePattern` (default: true). Corresponds to `--no-ignore`.
-* `ignorePath` - The ignore file to use instead of `.eslintignore` (default: null). Corresponds to `--ignore-path`.
-* `ignorePattern` - Glob patterns for paths to ignore. String or array of strings.
+* `allowInlineConfig` - Set to false to disable the use of configuration comments (such as `/*eslint-disable*/`). Corresponds to `--no-inline-config`.
 * `baseConfig` - Set to false to disable use of base config. Could be set to an object to override default base config as well.
-* `rulePaths` - An array of directories to load custom rules from (default: empty array). Corresponds to `--rulesdir`.
-* `rules` - An object of rules to use (default: null). Corresponds to `--rule`.
-* `useEslintrc` - Set to false to disable use of `.eslintrc` files (default: true). Corresponds to `--no-eslintrc`.
-* `parser` - Specify the parser to be used (default: `espree`). Corresponds to `--parser`.
 * `cache` - Operate only on changed files (default: `false`). Corresponds to `--cache`.
 * `cacheFile` - Name of the file where the cache will be stored (default: `.eslintcache`). Corresponds to `--cache-file`. Deprecated: use `cacheLocation` instead.
 * `cacheLocation` - Name of the file or directory where the cache will be stored (default: `.eslintcache`). Corresponds to `--cache-location`.
+* `configFile` - The configuration file to use (default: null). Corresponds to `-c`.
 * `cwd` - Path to a directory that should be considered as the current working directory.
+* `envs` - An array of environments to load (default: empty array). Corresponds to `--env`.
+* `extensions` - An array of filename extensions that should be checked for code. The default is an array containing just `".js"`. Corresponds to `--ext`. It is only used in conjunction with directories, not with filenames or glob patterns.
+* `fix` - True indicates that fixes should be included with the output report, and that errors and warnings should not be listed if they can be fixed. However, the files on disk will not be changed. To persist changes to disk, call [`outputFixes()`](#outputfixes).
+* `globals` - An array of global variables to declare (default: empty array). Corresponds to `--global`.
+* `ignore` - False disables use of `.eslintignore`, `ignorePath` and `ignorePattern` (default: true). Corresponds to `--no-ignore`.
+* `ignorePath` - The ignore file to use instead of `.eslintignore` (default: null). Corresponds to `--ignore-path`.
+* `ignorePattern` - Glob patterns for paths to ignore. String or array of strings.
+* `parser` - Specify the parser to be used (default: `espree`). Corresponds to `--parser`.
+* `parserOptions` - An object containing parser options (default: empty object). Corresponds to `--parser-options`.
+* `plugins` - An array of plugins to load (default: empty array). Corresponds to `--plugin`.
+* `rulePaths` - An array of directories to load custom rules from (default: empty array). Corresponds to `--rulesdir`.
+* `rules` - An object of rules to use (default: null). Corresponds to `--rule`.
+* `useEslintrc` - Set to false to disable use of `.eslintrc` files (default: true). Corresponds to `--no-eslintrc`.
+
+
 
 For example:
 
@@ -210,21 +220,20 @@ The return value is an object containing the results of the linting operation. H
 {
     results: [
         {
-            filePath: "./myfile.js",
-            output: "foo;",
-            messages: [
-                {
-                    fatal: false,
-                    severity: 2,
-                    ruleId: "semi",
-                    severity: 2,
-                    line: 1,
-                    column: 23,
-                    message: "Expected a semicolon."
-                }
-            ],
+            filePath: "/Users/eslint/project/myfile.js",
+            messages: [{
+                ruleId: "semi",
+                severity: 2,
+                message: "Missing semicolon.",
+                line: 1,
+                column: 13,
+                nodeType: "ExpressionStatement",
+                source: "\"use strict\"", // Deprecated: see "please note" paragraph below.
+                fix: { range: [12, 12], text: ";" }
+            }],
             errorCount: 1,
-            warningCount: 0
+            warningCount: 0,
+            source: "\"use strict\"\n"
         }
     ],
     errorCount: 1,
@@ -232,7 +241,100 @@ The return value is an object containing the results of the linting operation. H
 }
 ```
 
-The top-level report object has a `results` array containing all linting results for files that had warnings or errors (any files that did not produce a warning or error are omitted). Each file result includes the `filePath`, a `messages` array, `errorCount`, `warningCount`, and optionally `output`. The `messages` array contains the result of calling `linter.verify()` on the given file. The `errorCount` and `warningCount` give the exact number of errors and warnings respectively on the given file. The `output` property gives the source code for the file with as many fixes applied as possible, so you can use that to rewrite the files if necessary. The top-level report object also has `errorCount` and `warningCount` which give the exact number of errors and warnings respectively on all the files.
+You can also pass `fix: true` when instantiating the `CLIEngine` in order to have it figure out what fixes can be applied.
+
+```js
+var CLIEngine = require("eslint").CLIEngine;
+
+var cli = new CLIEngine({
+    envs: ["browser", "mocha"],
+    fix: true, // difference from last example
+    useEslintrc: false,
+    rules: {
+        semi: 2,
+        quotes: [2, "double"]
+    }
+});
+
+// lint myfile.js and all files in lib/
+var report = cli.executeOnFiles(["myfile.js", "lib/"]);
+```
+
+```js
+{
+    results: [
+        {
+            filePath: "/Users/eslint/project/myfile.js",
+            messages: [
+                {
+                    ruleId: "semi",
+                    severity: 2,
+                    message: "Missing semicolon.",
+                    line: 1,
+                    column: 13,
+                    nodeType: "ExpressionStatement",
+                    source: "\"use strict\"", // Deprecated: see "please note" paragraph below.
+                    fix: { range: [12, 12], text: ";" }
+                },
+                {
+                    ruleId: "func-name-matching",
+                    severity: 2,
+                    message: "Function name `bar` should match variable name `foo`",
+                    line: 2,
+                    column: 5,
+                    nodeType: "VariableDeclarator",
+                    source: "var foo = function bar() {};"
+                }
+            ],
+            errorCount: 1,
+            warningCount: 0,
+            output: "\"use strict\";\nvar foo = function bar() {};\nfoo();\n"
+        }
+    ],
+    errorCount: 1,
+    warningCount: 0
+}
+```
+
+If the operation ends with a parsing error, you will get a single message for this file, with `fatal: true` added as an extra property.
+
+```js
+{
+    results: [
+        {
+            filePath: "./myfile.js",
+            messages: [
+                {
+                    ruleId: null,
+                    fatal: true,
+                    severity: 2,
+                    source: "fucntion foo() {}",
+                    message: "Parsing error: Unexpected token foo",
+                    line: 1,
+                    column: 10
+                }
+            ],
+            errorCount: 1,
+            warningCount: 0,
+            source: "fucntion foo() {}"
+        }
+    ],
+    errorCount: 1,
+    warningCount: 0
+}
+```
+
+The top-level report object has a `results` array containing all linting results for files that had warnings or errors (any files that did not produce a warning or error are omitted). Each file result includes:
+
+* `filePath` - Path to the given file.
+* `messages` - Array containing the result of calling `linter.verify()` on the given file.
+* `errorCount` and `warningCount` - The exact number of errors and warnings respectively on the given file.
+* `source` - The source code for the given file. This property is omitted if this file has no errors/warnings or if the `output` property is present.
+* `output` - The source code for the given file with as many fixes applied as possible, so you can use that to rewrite the files if necessary. This property is omitted if no fix is available.
+
+The top-level report object also has `errorCount` and `warningCount` which give the exact number of errors and warnings respectively on all the files.
+
+**Please note**: the `source` property will be removed from the linting messages returned in `messages` in an upcoming breaking release. If you depend on this property, you should now use the top-level `source` or `output` properties instead.
 
 Once you get a report object, it's up to you to determine how to output the results. Fixes will not be automatically applied to the files, even if you set `fix: true` when constructing the `CLIEngine` instance. To apply fixes to the files, call [`outputFixes`](#outputfixes).
 
@@ -310,6 +412,8 @@ var report = cli.executeOnText("var foo = 'bar';", "foo.js");
 
 The `report` returned from `executeOnText()` is in the same format as from `executeOnFiles()`, but there is only ever one result in `report.results`.
 
+If a filename in the optional second parameter matches a file that is configured to be ignored, then this function returns no errors or warnings. To return a warning instead, call the method with true as the optional third parameter.
+
 ### addPlugin()
 
 Loads a plugin from configuration object with specified name. Name can include plugin prefix ("eslint-plugin-")
@@ -353,12 +457,13 @@ var isIgnored = cli.isPathIgnored("foo/bar.js");
 Retrieves a formatter, which you can then use to format a report object. The argument is either the name of a built-in formatter:
 
 * "[checkstyle](../user-guide/formatters#checkstyle)"
+* "[codeframe](../user-guide/formatters#codeframe)"
 * "[compact](../user-guide/formatters#compact)"
 * "[html](../user-guide/formatters#html)"
 * "[jslint-xml](../user-guide/formatters#jslint-xml)"
 * "[json](../user-guide/formatters#json)"
 * "[junit](../user-guide/formatters#junit)"
-* "[stylish](./user-guide/formatters#stylish)" (the default)
+* "[stylish](../user-guide/formatters#stylish)" (the default)
 * "[table](../user-guide/formatters#table)"
 * "[tap](../user-guide/formatters#tap)"
 * "[unix](../user-guide/formatters#unix)"
@@ -432,6 +537,7 @@ var CLIEngine = require("eslint").CLIEngine;
 
 var cli = new CLIEngine({
     envs: ["browser", "mocha"],
+    fix: true,
     useEslintrc: false,
     rules: {
         semi: 2

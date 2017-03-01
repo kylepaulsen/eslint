@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/accessor-pairs"),
+const rule = require("../../../lib/rules/accessor-pairs"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("accessor-pairs", rule, {
     valid: [
@@ -36,18 +36,18 @@ ruleTester.run("accessor-pairs", rule, {
         },
 
         // https://github.com/eslint/eslint/issues/3262
-        {code: "var o = {set: function() {}}"},
-        {code: "Object.defineProperties(obj, {set: {value: function() {}}});"},
-        {code: "Object.create(null, {set: {value: function() {}}});"},
-        {code: "var o = {get: function() {}}", options: [{getWithoutSet: true}]},
-        {code: "var o = {[set]: function() {}}", parserOptions: { ecmaVersion: 6 }},
-        {code: "var set = 'value'; Object.defineProperty(obj, 'foo', {[set]: function(value) {}});", parserOptions: { ecmaVersion: 6 }}
+        { code: "var o = {set: function() {}}" },
+        { code: "Object.defineProperties(obj, {set: {value: function() {}}});" },
+        { code: "Object.create(null, {set: {value: function() {}}});" },
+        { code: "var o = {get: function() {}}", options: [{ getWithoutSet: true }] },
+        { code: "var o = {[set]: function() {}}", parserOptions: { ecmaVersion: 6 } },
+        { code: "var set = 'value'; Object.defineProperty(obj, 'foo', {[set]: function(value) {}});", parserOptions: { ecmaVersion: 6 } }
     ],
     invalid: [
         {
             code: "var o = {\n set a(value) {\n val = value; \n} \n};",
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         },
         {
@@ -56,38 +56,38 @@ ruleTester.run("accessor-pairs", rule, {
                 getWithoutSet: true
             }],
             errors: [{
-                message: "Setter is not present"
+                message: "Setter is not present."
             }]
         },
         {
             code: "var o = {d: 1};\n Object.defineProperty(o, 'c', \n{set: function(value) {\n val = value; \n} \n});",
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         },
         {
             code: "Reflect.defineProperty(obj, 'foo', {set: function(value) {}});",
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         },
         {
             code: "Object.defineProperties(obj, {foo: {set: function(value) {}}});",
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         },
         {
             code: "Object.create(null, {foo: {set: function(value) {}}});",
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         },
         {
             code: "var expr = 'foo';  var o = { set [expr](value) { val = value; } };",
             parserOptions: { ecmaVersion: 6 },
             errors: [{
-                message: "Getter is not present"
+                message: "Getter is not present."
             }]
         }
     ]

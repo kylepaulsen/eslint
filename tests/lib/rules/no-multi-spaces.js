@@ -8,14 +8,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-multi-spaces"),
+const rule = require("../../../lib/rules/no-multi-spaces"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-multi-spaces", rule, {
 
@@ -69,7 +69,7 @@ ruleTester.run("no-multi-spaces", rule, {
         "var foo = \"hello     world\";",
         "function foo() {\n    return;\n}",
         "function foo() {\n    if (foo) {\n        return;\n    }\n}",
-        { code: "var foo = `hello     world`;", parserOptions: { ecmaVersion: 6 }},
+        { code: "var foo = `hello     world`;", parserOptions: { ecmaVersion: 6 } },
         "({ a:  b })",
         {
             code: "var  answer = 6 *  7;",

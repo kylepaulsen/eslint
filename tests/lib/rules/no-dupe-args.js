@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-dupe-args"),
+const rule = require("../../../lib/rules/no-dupe-args"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-dupe-args", rule, {
     valid: [
@@ -28,16 +28,12 @@ ruleTester.run("no-dupe-args", rule, {
     ],
     invalid: [
         { code: "function a(a, b, b) {}", errors: [{ message: "Duplicate param 'b'." }] },
-        { code: "function a({a, b}, b) {}", parserOptions: { ecmaVersion: 6 }, errors: [{ message: "Duplicate param 'b'." }] },
-        { code: "function a([a, b], b) {}", parserOptions: { ecmaVersion: 6 }, errors: [{ message: "Duplicate param 'b'." }] },
-        { code: "function a([ , a], [b, , a]) {}", parserOptions: { ecmaVersion: 6 }, errors: [{ message: "Duplicate param 'a'." }] },
-        { code: "function a([a, b], {b}) {}", parserOptions: { ecmaVersion: 6 }, errors: [{ message: "Duplicate param 'b'." }] },
         { code: "function a(a, a, a) {}", errors: [{ message: "Duplicate param 'a'." }] },
-        { code: "function a(a, b, a) {}", errors: [{ message: "Duplicate param 'a'." }]},
-        { code: "function a(a, b, a, b) {}", errors: [{ message: "Duplicate param 'a'." }, { message: "Duplicate param 'b'." }]},
+        { code: "function a(a, b, a) {}", errors: [{ message: "Duplicate param 'a'." }] },
+        { code: "function a(a, b, a, b) {}", errors: [{ message: "Duplicate param 'a'." }, { message: "Duplicate param 'b'." }] },
         { code: "var a = function(a, b, b) {}", errors: [{ message: "Duplicate param 'b'." }] },
         { code: "var a = function(a, a, a) {}", errors: [{ message: "Duplicate param 'a'." }] },
-        { code: "var a = function(a, b, a) {}", errors: [{ message: "Duplicate param 'a'." }]},
-        { code: "var a = function(a, b, a, b) {}", errors: [{ message: "Duplicate param 'a'." }, { message: "Duplicate param 'b'." }]}
+        { code: "var a = function(a, b, a) {}", errors: [{ message: "Duplicate param 'a'." }] },
+        { code: "var a = function(a, b, a, b) {}", errors: [{ message: "Duplicate param 'a'." }, { message: "Duplicate param 'b'." }] }
     ]
 });

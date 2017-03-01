@@ -9,11 +9,18 @@ We can use that feature for variadic functions instead of the `arguments` variab
 
 This rule is aimed to flag usage of `arguments` variables.
 
-The following patterns are considered problems:
+## Examples
+
+Examples of **incorrect** code for this rule:
 
 ```js
 function foo() {
     console.log(arguments);
+}
+
+function foo(action) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    action.apply(null, args);
 }
 
 function foo(action) {
@@ -22,7 +29,7 @@ function foo(action) {
 }
 ```
 
-The following patterns are not considered problems:
+Examples of **correct** code for this rule:
 
 ```js
 function foo(...args) {

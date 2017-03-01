@@ -8,14 +8,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-trailing-spaces"),
+const rule = require("../../../lib/rules/no-trailing-spaces"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-trailing-spaces", rule, {
 
@@ -381,6 +381,39 @@ ruleTester.run("no-trailing-spaces", rule, {
                     type: "Program",
                     line: 3,
                     column: 7
+                }
+            ]
+        },
+
+        // https://github.com/eslint/eslint/issues/6933
+        {
+            code: "    \nabcdefg ",
+            output: "    \nabcdefg",
+            options: [{ skipBlankLines: true }],
+            errors: [
+                {
+                    message: "Trailing spaces not allowed.",
+                    type: "Program",
+                    line: 2,
+                    column: 8
+                }
+            ]
+        },
+        {
+            code: "    \nabcdefg ",
+            output: "\nabcdefg",
+            errors: [
+                {
+                    message: "Trailing spaces not allowed.",
+                    type: "Program",
+                    line: 1,
+                    column: 1
+                },
+                {
+                    message: "Trailing spaces not allowed.",
+                    type: "Program",
+                    line: 2,
+                    column: 8
                 }
             ]
         }

@@ -9,38 +9,36 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
+const assert = require("chai").assert,
     fs = require("fs"),
     path = require("path"),
     os = require("os"),
     sinon = require("sinon"),
     sh = require("shelljs"),
-    proxyquire = require("proxyquire"),
     autoconfig = require("../../../lib/config/autoconfig"),
     npmUtil = require("../../../lib/util/npm-util");
 
-var originalDir = process.cwd();
-
-proxyquire = proxyquire.noPreserveCache();
+const originalDir = process.cwd();
+const proxyquire = require("proxyquire").noPreserveCache();
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var answers = {};
+let answers = {};
 
-describe("configInitializer", function() {
+describe("configInitializer", () => {
 
-    var fixtureDir,
+    let fixtureDir,
         npmCheckStub,
         npmInstallStub,
         init;
 
-    var log = {
+    const log = {
         info: sinon.spy(),
         error: sinon.spy()
     };
-    var requireStubs = {
+    const requireStubs = {
         "../logging": log
     };
 
@@ -50,10 +48,10 @@ describe("configInitializer", function() {
      * @private
      */
     function getFixturePath() {
-        var args = Array.prototype.slice.call(arguments);
+        const args = Array.prototype.slice.call(arguments);
 
         args.unshift(fixtureDir);
-        var filepath = path.join.apply(path, args);
+        let filepath = path.join.apply(path, args);
 
         try {
             filepath = fs.realpathSync(filepath);
@@ -64,40 +62,38 @@ describe("configInitializer", function() {
     }
 
     // copy into clean area so as not to get "infected" by this project's .eslintrc files
-    before(function() {
-        fixtureDir = os.tmpdir() + "/eslint/fixtures/config-initializer";
+    before(() => {
+        fixtureDir = `${os.tmpdir()}/eslint/fixtures/config-initializer`;
         sh.mkdir("-p", fixtureDir);
         sh.cp("-r", "./tests/fixtures/config-initializer/.", fixtureDir);
         fixtureDir = fs.realpathSync(fixtureDir);
     });
 
-    beforeEach(function() {
+    beforeEach(() => {
         npmInstallStub = sinon.stub(npmUtil, "installSyncSaveDev");
-        npmCheckStub = sinon.stub(npmUtil, "checkDevDeps", function(packages) {
-            return packages.reduce(function(status, pkg) {
-                status[pkg] = false;
-                return status;
-            }, {});
-        });
+        npmCheckStub = sinon.stub(npmUtil, "checkDevDeps", packages => packages.reduce((status, pkg) => {
+            status[pkg] = false;
+            return status;
+        }, {}));
         init = proxyquire("../../../lib/config/config-initializer", requireStubs);
     });
 
-    afterEach(function() {
+    afterEach(() => {
         log.info.reset();
         log.error.reset();
         npmInstallStub.restore();
         npmCheckStub.restore();
     });
 
-    after(function() {
+    after(() => {
         sh.rm("-r", fixtureDir);
     });
 
-    describe("processAnswers()", function() {
+    describe("processAnswers()", () => {
 
-        describe("prompt", function() {
+        describe("prompt", () => {
 
-            beforeEach(function() {
+            beforeEach(() => {
                 answers = {
                     source: "prompt",
                     extendDefault: true,
@@ -115,8 +111,8 @@ describe("configInitializer", function() {
                 };
             });
 
-            it("should create default config", function() {
-                var config = init.processAnswers(answers);
+            it("should create default config", () => {
+                const config = init.processAnswers(answers);
 
                 assert.deepEqual(config.rules.indent, ["error", 2]);
                 assert.deepEqual(config.rules.quotes, ["error", "single"]);
@@ -128,109 +124,114 @@ describe("configInitializer", function() {
                 assert.equal(config.extends, "eslint:recommended");
             });
 
-            it("should disable semi", function() {
+            it("should disable semi", () => {
                 answers.semi = false;
-                var config = init.processAnswers(answers);
+                const config = init.processAnswers(answers);
 
                 assert.deepEqual(config.rules.semi, ["error", "never"]);
             });
 
-            it("should enable jsx flag", function() {
+            it("should enable jsx flag", () => {
                 answers.jsx = true;
-                var config = init.processAnswers(answers);
+                const config = init.processAnswers(answers);
 
                 assert.equal(config.parserOptions.ecmaFeatures.jsx, true);
             });
 
-            it("should enable react plugin", function() {
+            it("should enable react plugin", () => {
                 answers.jsx = true;
                 answers.react = true;
-                var config = init.processAnswers(answers);
+                const config = init.processAnswers(answers);
 
                 assert.equal(config.parserOptions.ecmaFeatures.jsx, true);
                 assert.equal(config.parserOptions.ecmaFeatures.experimentalObjectRestSpread, true);
                 assert.deepEqual(config.plugins, ["react"]);
             });
 
-            it("should not enable es6", function() {
+            it("should not enable es6", () => {
                 answers.es6 = false;
-                var config = init.processAnswers(answers);
+                const config = init.processAnswers(answers);
 
                 assert.isUndefined(config.env.es6);
             });
 
-            it("should extend eslint:recommended", function() {
-                var config = init.processAnswers(answers);
+            it("should extend eslint:recommended", () => {
+                const config = init.processAnswers(answers);
 
                 assert.equal(config.extends, "eslint:recommended");
             });
 
-            it("should not use commonjs by default", function() {
-                var config = init.processAnswers(answers);
+            it("should not use commonjs by default", () => {
+                const config = init.processAnswers(answers);
 
                 assert.isUndefined(config.env.commonjs);
             });
 
-            it("should use commonjs when set", function() {
+            it("should use commonjs when set", () => {
                 answers.commonjs = true;
-                var config = init.processAnswers(answers);
+                const config = init.processAnswers(answers);
 
                 assert.isTrue(config.env.commonjs);
             });
         });
 
-        describe("guide", function() {
-            it("should support the google style guide", function() {
-                var config = init.getConfigForStyleGuide("google");
+        describe("guide", () => {
+            it("should support the google style guide", () => {
+                const config = init.getConfigForStyleGuide("google");
 
-                assert.deepEqual(config, {extends: "google", installedESLint: true});
+                assert.deepEqual(config, { extends: "google", installedESLint: true });
             });
 
-            it("should support the airbnb style guide", function() {
-                var config = init.getConfigForStyleGuide("airbnb");
+            it("should support the airbnb style guide", () => {
+                const config = init.getConfigForStyleGuide("airbnb");
 
-                assert.deepEqual(config, {extends: "airbnb", installedESLint: true, plugins: ["react"]});
+                assert.deepEqual(config, { extends: "airbnb", installedESLint: true, plugins: ["react", "jsx-a11y", "import"] });
             });
 
-            it("should support the standard style guide", function() {
-                var config = init.getConfigForStyleGuide("standard");
+            it("should support the airbnb base style guide", () => {
+                const config = init.getConfigForStyleGuide("airbnb-base");
 
-                assert.deepEqual(config, {extends: "standard", installedESLint: true, plugins: ["standard"]});
+                assert.deepEqual(config, { extends: "airbnb-base", installedESLint: true, plugins: ["import"] });
             });
 
-            it("should throw when encountering an unsupported style guide", function() {
-                assert.throws(function() {
+            it("should support the standard style guide", () => {
+                const config = init.getConfigForStyleGuide("standard");
+
+                assert.deepEqual(config, { extends: "standard", installedESLint: true, plugins: ["standard", "promise"] });
+            });
+
+            it("should throw when encountering an unsupported style guide", () => {
+                assert.throws(() => {
                     init.getConfigForStyleGuide("non-standard");
                 }, "You referenced an unsupported guide.");
             });
 
-            it("should install required sharable config", function() {
+            it("should install required sharable config", () => {
                 init.getConfigForStyleGuide("google");
                 assert(npmInstallStub.calledOnce);
                 assert.deepEqual(npmInstallStub.firstCall.args[0][1], "eslint-config-google");
             });
 
-            it("should install ESLint if not installed locally", function() {
+            it("should install ESLint if not installed locally", () => {
                 init.getConfigForStyleGuide("google");
                 assert(npmInstallStub.calledOnce);
                 assert.deepEqual(npmInstallStub.firstCall.args[0][0], "eslint");
             });
         });
 
-        describe("auto", function() {
-            var config,
-                completeSpy = sinon.spy(),
-                sandbox;
+        describe("auto", () => {
+            const completeSpy = sinon.spy();
+            let config;
 
-            before(function() {
-                var patterns = [
+            before(() => {
+                const patterns = [
                     getFixturePath("lib"),
                     getFixturePath("tests")
                 ].join(" ");
 
                 answers = {
                     source: "auto",
-                    patterns: patterns,
+                    patterns,
                     es6: false,
                     env: ["browser"],
                     jsx: false,
@@ -239,7 +240,8 @@ describe("configInitializer", function() {
                     commonjs: false
                 };
 
-                sandbox = sinon.sandbox.create();
+                const sandbox = sinon.sandbox.create();
+
                 sandbox.stub(console, "log"); // necessary to replace, because of progress bar
 
                 process.chdir(fixtureDir);
@@ -257,39 +259,39 @@ describe("configInitializer", function() {
                 }
             });
 
-            it("should create a config", function() {
+            it("should create a config", () => {
                 assert.isTrue(completeSpy.notCalled);
                 assert.ok(config);
             });
 
-            it("should create the config based on examined files", function() {
+            it("should create the config based on examined files", () => {
                 assert.deepEqual(config.rules.quotes, ["error", "double"]);
                 assert.equal(config.rules.semi, "off");
             });
 
-            it("should extend and not disable recommended rules", function() {
+            it("should extend and not disable recommended rules", () => {
                 assert.equal(config.extends, "eslint:recommended");
                 assert.notProperty(config.rules, "no-console");
             });
 
-            it("should throw on fatal parsing error", function() {
-                var filename = getFixturePath("parse-error");
+            it("should throw on fatal parsing error", () => {
+                const filename = getFixturePath("parse-error");
 
                 sinon.stub(autoconfig, "extendFromRecommended");
                 answers.patterns = filename;
                 process.chdir(fixtureDir);
-                assert.throws(function() {
+                assert.throws(() => {
                     config = init.processAnswers(answers);
                 }, "Parsing error: Unexpected token ;");
                 process.chdir(originalDir);
                 autoconfig.extendFromRecommended.restore();
             });
 
-            it("should throw if no files are matched from patterns", function() {
+            it("should throw if no files are matched from patterns", () => {
                 sinon.stub(autoconfig, "extendFromRecommended");
                 answers.patterns = "not-a-real-filename";
                 process.chdir(fixtureDir);
-                assert.throws(function() {
+                assert.throws(() => {
                     config = init.processAnswers(answers);
                 }, "Automatic Configuration failed.  No files were able to be parsed.");
                 process.chdir(originalDir);

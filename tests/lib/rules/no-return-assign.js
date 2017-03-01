@@ -9,19 +9,19 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-return-assign"),
+const rule = require("../../../lib/rules/no-return-assign"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var error = {
+const error = {
     message: "Return statement should not contain assignment.",
     type: "ReturnStatement"
 };
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-return-assign", rule, {
     valid: [

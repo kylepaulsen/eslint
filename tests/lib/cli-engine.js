@@ -9,19 +9,21 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var assert = require("chai").assert,
+const assert = require("chai").assert,
     path = require("path"),
-    proxyquire = require("proxyquire"),
     sinon = require("sinon"),
     leche = require("leche"),
+    shell = require("shelljs"),
     Config = require("../../lib/config"),
     Plugins = require("../../lib/config/plugins"),
     fs = require("fs"),
     os = require("os"),
-    hash = require("../../lib/util/hash");
+    hash = require("../../lib/util/hash"),
+    rules = require("../../lib/rules");
 
 require("shelljs/global");
-proxyquire = proxyquire.noCallThru().noPreserveCache();
+
+const proxyquire = require("proxyquire").noCallThru().noPreserveCache();
 
 /* global mkdir, rm, cp */
 
@@ -29,18 +31,18 @@ proxyquire = proxyquire.noCallThru().noPreserveCache();
 // Tests
 //------------------------------------------------------------------------------
 
-describe("CLIEngine", function() {
+describe("CLIEngine", () => {
 
-    var examplePluginName = "eslint-plugin-example",
+    const examplePluginName = "eslint-plugin-example",
         examplePluginNameWithNamespace = "@eslint/eslint-plugin-example",
         requireStubs = {},
         examplePlugin = { rules: {
             "example-rule": require("../fixtures/rules/custom-rule"),
             "make-syntax-error": require("../fixtures/rules/make-syntax-error-rule")
         } },
-        CLIEngine,
         examplePreprocessorName = "eslint-plugin-processor",
-        originalDir = process.cwd(),
+        originalDir = process.cwd();
+    let CLIEngine,
         fixtureDir;
 
     /**
@@ -49,10 +51,10 @@ describe("CLIEngine", function() {
      * @private
      */
     function getFixturePath() {
-        var args = Array.prototype.slice.call(arguments);
+        const args = Array.prototype.slice.call(arguments);
 
         args.unshift(fixtureDir);
-        var filepath = path.join.apply(path, args);
+        let filepath = path.join.apply(path, args);
 
         try {
             filepath = fs.realpathSync(filepath);
@@ -63,7 +65,7 @@ describe("CLIEngine", function() {
     }
 
     // copy into clean area so as not to get "infected" by this project's .eslintrc files
-    before(function() {
+    before(() => {
         fixtureDir = path.join(os.tmpdir(), "/eslint/fixtures");
         mkdir("-p", fixtureDir);
         cp("-r", "./tests/fixtures/.", fixtureDir);
@@ -74,20 +76,21 @@ describe("CLIEngine", function() {
         Plugins.define(examplePreprocessorName, require("../fixtures/processors/custom-processor"));
     });
 
-    beforeEach(function() {
+    beforeEach(() => {
         CLIEngine = proxyquire("../../lib/cli-engine", requireStubs);
     });
 
-    after(function() {
+    after(() => {
         rm("-r", fixtureDir);
         Plugins.testReset();
+        rules.testReset();
     });
 
-    describe("new CLIEngine(options)", function() {
-        it("the default value of 'options.cwd' should be the current working directory.", function() {
+    describe("new CLIEngine(options)", () => {
+        it("the default value of 'options.cwd' should be the current working directory.", () => {
             process.chdir(__dirname);
             try {
-                var engine = new CLIEngine();
+                const engine = new CLIEngine();
 
                 assert.equal(engine.options.cwd, __dirname);
             } finally {
@@ -96,27 +99,28 @@ describe("CLIEngine", function() {
         });
     });
 
-    describe("executeOnText()", function() {
+    describe("executeOnText()", () => {
 
-        var engine;
+        let engine;
 
-        it("should report one message when using local cwd .eslintrc", function() {
+        it("should report 5 message when using local cwd .eslintrc", () => {
 
             engine = new CLIEngine();
 
-            var report = engine.executeOnText("var foo = 'bar';");
+            const report = engine.executeOnText("var foo = 'bar';");
 
             assert.equal(report.results.length, 1);
-            assert.equal(report.errorCount, 4);
+            assert.equal(report.errorCount, 5);
             assert.equal(report.warningCount, 0);
-            assert.equal(report.results[0].messages.length, 4);
+            assert.equal(report.results[0].messages.length, 5);
             assert.equal(report.results[0].messages[0].ruleId, "strict");
-            assert.equal(report.results[0].messages[1].ruleId, "eol-last");
+            assert.equal(report.results[0].messages[1].ruleId, "no-var");
             assert.equal(report.results[0].messages[2].ruleId, "no-unused-vars");
             assert.equal(report.results[0].messages[3].ruleId, "quotes");
+            assert.equal(report.results[0].messages[4].ruleId, "eol-last");
         });
 
-        it("should report one message when using specific config file", function() {
+        it("should report one message when using specific config file", () => {
 
             engine = new CLIEngine({
                 configFile: "fixtures/configurations/quotes-error.json",
@@ -124,7 +128,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath("..")
             });
 
-            var report = engine.executeOnText("var foo = 'bar';");
+            const report = engine.executeOnText("var foo = 'bar';");
 
             assert.equal(report.results.length, 1);
             assert.equal(report.errorCount, 1);
@@ -136,25 +140,25 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].warningCount, 0);
         });
 
-        it("should report the filename when passed in", function() {
+        it("should report the filename when passed in", () => {
 
             engine = new CLIEngine({
                 ignore: false,
                 cwd: getFixturePath()
             });
 
-            var report = engine.executeOnText("var foo = 'bar';", "test.js");
+            const report = engine.executeOnText("var foo = 'bar';", "test.js");
 
             assert.equal(report.results[0].filePath, getFixturePath("test.js"));
         });
 
-        it("should return a warning when given a filename by --stdin-filename in excluded files list", function() {
+        it("should return a warning when given a filename by --stdin-filename in excluded files list if warnIgnored is true", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore"),
                 cwd: getFixturePath("..")
             });
 
-            var report = engine.executeOnText("var bar = foo;", "fixtures/passing.js");
+            const report = engine.executeOnText("var bar = foo;", "fixtures/passing.js", true);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.errorCount, 0);
@@ -167,7 +171,32 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].warningCount, 1);
         });
 
-        it("should return a message when given a filename by --stdin-filename in excluded files list and ignore is off", function() {
+        it("should not return a warning when given a filename by --stdin-filename in excluded files list if warnIgnored is false", () => {
+            engine = new CLIEngine({
+                ignorePath: getFixturePath(".eslintignore"),
+                cwd: getFixturePath("..")
+            });
+
+            // intentional parsing error
+            const report = engine.executeOnText("va r bar = foo;", "fixtures/passing.js", false);
+
+            // should not report anything because the file is ignored
+            assert.equal(report.results.length, 0);
+        });
+
+        it("should suppress excluded file warnings by default", () => {
+            engine = new CLIEngine({
+                ignorePath: getFixturePath(".eslintignore"),
+                cwd: getFixturePath("..")
+            });
+
+            const report = engine.executeOnText("var bar = foo;", "fixtures/passing.js");
+
+            // should not report anything because there are no errors
+            assert.equal(report.results.length, 0);
+        });
+
+        it("should return a message when given a filename by --stdin-filename in excluded files list and ignore is off", () => {
 
             engine = new CLIEngine({
                 ignorePath: "fixtures/.eslintignore",
@@ -179,7 +208,7 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var report = engine.executeOnText("var bar = foo;", "fixtures/passing.js");
+            const report = engine.executeOnText("var bar = foo;", "fixtures/passing.js");
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, getFixturePath("passing.js"));
@@ -188,7 +217,7 @@ describe("CLIEngine", function() {
             assert.isUndefined(report.results[0].messages[0].output);
         });
 
-        it("should return a message and fixed text when in fix mode", function() {
+        it("should return a message and fixed text when in fix mode", () => {
 
             engine = new CLIEngine({
                 useEslintrc: false,
@@ -200,7 +229,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath()
             });
 
-            var report = engine.executeOnText("var bar = foo", "passing.js");
+            const report = engine.executeOnText("var bar = foo", "passing.js");
 
             assert.deepEqual(report, {
                 results: [
@@ -217,7 +246,35 @@ describe("CLIEngine", function() {
             });
         });
 
-        it("should return a message and omit fixed text when in fix mode and fixes aren't done", function() {
+        it("correctly autofixes semicolon-conflicting-fixes", () => {
+            engine = new CLIEngine({
+                cwd: path.join(fixtureDir, ".."),
+                useEslintrc: false,
+                fix: true
+            });
+            const inputPath = getFixturePath("autofix/semicolon-conflicting-fixes.js");
+            const outputPath = getFixturePath("autofix/semicolon-conflicting-fixes.expected.js");
+            const report = engine.executeOnFiles([inputPath]);
+            const expectedOutput = fs.readFileSync(outputPath, "utf8");
+
+            assert.strictEqual(report.results[0].output, expectedOutput);
+        });
+
+        it("correctly autofixes return-conflicting-fixes", () => {
+            engine = new CLIEngine({
+                cwd: path.join(fixtureDir, ".."),
+                useEslintrc: false,
+                fix: true
+            });
+            const inputPath = getFixturePath("autofix/return-conflicting-fixes.js");
+            const outputPath = getFixturePath("autofix/return-conflicting-fixes.expected.js");
+            const report = engine.executeOnFiles([inputPath]);
+            const expectedOutput = fs.readFileSync(outputPath, "utf8");
+
+            assert.strictEqual(report.results[0].output, expectedOutput);
+        });
+
+        it("should return a message and omit fixed text when in fix mode and fixes aren't done", () => {
 
             engine = new CLIEngine({
                 useEslintrc: false,
@@ -229,7 +286,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath()
             });
 
-            var report = engine.executeOnText("var bar = foo", "passing.js");
+            const report = engine.executeOnText("var bar = foo", "passing.js");
 
             assert.deepEqual(report, {
                 results: [
@@ -247,7 +304,8 @@ describe("CLIEngine", function() {
                             }
                         ],
                         errorCount: 1,
-                        warningCount: 0
+                        warningCount: 0,
+                        source: "var bar = foo"
                     }
                 ],
                 errorCount: 1,
@@ -255,7 +313,7 @@ describe("CLIEngine", function() {
             });
         });
 
-        it("should not delete code if there is a syntax error after trying to autofix.", function() {
+        it("should not delete code if there is a syntax error after trying to autofix.", () => {
             engine = new CLIEngine({
                 useEslintrc: false,
                 fix: true,
@@ -266,7 +324,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath()
             });
 
-            var report = engine.executeOnText("var bar = foo", "test.js");
+            const report = engine.executeOnText("var bar = foo", "test.js");
 
             assert.deepEqual(report, {
                 results: [
@@ -293,7 +351,7 @@ describe("CLIEngine", function() {
             });
         });
 
-        it("should not crash even if there are any syntax error since the first time.", function() {
+        it("should not crash even if there are any syntax error since the first time.", () => {
             engine = new CLIEngine({
                 useEslintrc: false,
                 fix: true,
@@ -304,7 +362,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath()
             });
 
-            var report = engine.executeOnText("var bar =", "test.js");
+            const report = engine.executeOnText("var bar =", "test.js");
 
             assert.deepEqual(report, {
                 results: [
@@ -322,7 +380,92 @@ describe("CLIEngine", function() {
                             }
                         ],
                         errorCount: 1,
-                        warningCount: 0
+                        warningCount: 0,
+                        source: "var bar ="
+                    }
+                ],
+                errorCount: 1,
+                warningCount: 0
+            });
+        });
+
+        it("should return source code of file in `source` property when errors are present", () => {
+            engine = new CLIEngine({
+                useEslintrc: false,
+                rules: { semi: 2 }
+            });
+
+            const report = engine.executeOnText("var foo = 'bar'");
+
+            assert.equal(report.results[0].source, "var foo = 'bar'");
+        });
+
+        it("should return source code of file in `source` property when warnings are present", () => {
+            engine = new CLIEngine({
+                useEslintrc: false,
+                rules: { semi: 1 }
+            });
+
+            const report = engine.executeOnText("var foo = 'bar'");
+
+            assert.equal(report.results[0].source, "var foo = 'bar'");
+        });
+
+
+        it("should not return a `source` property when no errors or warnings are present", () => {
+            engine = new CLIEngine({
+                useEslintrc: false,
+                rules: { semi: 2 }
+            });
+
+            const report = engine.executeOnText("var foo = 'bar';");
+
+            assert.lengthOf(report.results[0].messages, 0);
+            assert.isUndefined(report.results[0].source);
+        });
+
+        it("should not return a `source` property when fixes are applied", () => {
+            engine = new CLIEngine({
+                useEslintrc: false,
+                fix: true,
+                rules: {
+                    semi: 2,
+                    "no-unused-vars": 2
+                }
+            });
+
+            const report = engine.executeOnText("var msg = 'hi' + foo\n");
+
+            assert.isUndefined(report.results[0].source);
+            assert.equal(report.results[0].output, "var msg = 'hi' + foo;\n");
+        });
+
+        it("should return a `source` property when a parsing error has occurred", () => {
+            engine = new CLIEngine({
+                useEslintrc: false,
+                rules: { semi: 2 }
+            });
+
+            const report = engine.executeOnText("var bar = foothis is a syntax error.\n return bar;");
+
+            assert.deepEqual(report, {
+                results: [
+                    {
+                        filePath: "<text>",
+                        messages: [
+                            {
+                                ruleId: null,
+                                fatal: true,
+                                severity: 2,
+                                message: "Parsing error: Unexpected token is",
+                                line: 1,
+                                column: 19,
+                                source: "var bar = foothis is a syntax error."
+                            }
+                        ],
+                        errorCount: 1,
+                        warningCount: 0,
+                        source: "var bar = foothis is a syntax error.\n return bar;"
                     }
                 ],
                 errorCount: 1,
@@ -331,15 +474,15 @@ describe("CLIEngine", function() {
         });
 
         // https://github.com/eslint/eslint/issues/5547
-        it("should respect default ignore rules, even with --no-ignore", function() {
+        it("should respect default ignore rules, even with --no-ignore", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath(),
                 ignore: false
             });
 
-            var report = engine.executeOnText("var bar = foo;", "node_modules/passing.js");
-            var expectedMsg = "File ignored by default. Use \"--ignore-pattern \'!node_modules/*\'\" to override.";
+            const report = engine.executeOnText("var bar = foo;", "node_modules/passing.js", true);
+            const expectedMsg = "File ignored by default. Use \"--ignore-pattern '!node_modules/*'\" to override.";
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, getFixturePath("node_modules/passing.js"));
@@ -348,19 +491,19 @@ describe("CLIEngine", function() {
 
     });
 
-    describe("executeOnFiles()", function() {
+    describe("executeOnFiles()", () => {
 
-        var engine;
+        let engine;
 
-        it("should use correct parser when custom parser is specified", function() {
+        it("should use correct parser when custom parser is specified", () => {
 
             engine = new CLIEngine({
                 cwd: originalDir,
                 ignore: false
             });
 
-            var filePath = path.resolve(__dirname, "../fixtures/configurations/parser/custom.js");
-            var report = engine.executeOnFiles([filePath]);
+            const filePath = path.resolve(__dirname, "../fixtures/configurations/parser/custom.js");
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 1);
@@ -369,88 +512,89 @@ describe("CLIEngine", function() {
         });
 
 
-        it("should report zero messages when given a config file and a valid file", function() {
+        it("should report zero messages when given a config file and a valid file", () => {
 
             engine = new CLIEngine({
                 cwd: originalDir,
                 configFile: ".eslintrc.yml"
             });
 
-            var report = engine.executeOnFiles(["lib/cli*.js"]);
+            const report = engine.executeOnFiles(["lib/cli*.js"]);
 
             assert.equal(report.results.length, 2);
             assert.equal(report.results[0].messages.length, 0);
             assert.equal(report.results[1].messages.length, 0);
         });
 
-        it("should handle multiple patterns with overlapping files", function() {
+        it("should handle multiple patterns with overlapping files", () => {
 
             engine = new CLIEngine({
                 cwd: originalDir,
                 configFile: ".eslintrc.yml"
             });
 
-            var report = engine.executeOnFiles(["lib/cli*.js", "lib/cli.?s", "lib/{cli,cli-engine}.js"]);
+            const report = engine.executeOnFiles(["lib/cli*.js", "lib/cli.?s", "lib/{cli,cli-engine}.js"]);
 
             assert.equal(report.results.length, 2);
             assert.equal(report.results[0].messages.length, 0);
             assert.equal(report.results[1].messages.length, 0);
         });
 
-        it("should report zero messages when given a config file and a valid file and espree as parser", function() {
+        it("should report zero messages when given a config file and a valid file and espree as parser", () => {
 
             engine = new CLIEngine({
                 parser: "espree",
+                envs: ["es6"],
                 useEslintrc: false
             });
 
-            var report = engine.executeOnFiles(["lib/cli.js"]);
+            const report = engine.executeOnFiles(["lib/cli.js"]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should report zero messages when given a config file and a valid file and esprima as parser", function() {
+        it("should report zero messages when given a config file and a valid file and esprima as parser", () => {
 
             engine = new CLIEngine({
                 parser: "esprima",
                 useEslintrc: false
             });
 
-            var report = engine.executeOnFiles(["lib/cli.js"]);
+            const report = engine.executeOnFiles(["lib/cli.js"]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should report one fatal message when given a config file and a valid file and invalid parser", function() {
+        it("should report one fatal message when given a config file and a valid file and invalid parser", () => {
 
             engine = new CLIEngine({
                 parser: "test11",
                 useEslintrc: false
             });
 
-            var report = engine.executeOnFiles(["lib/cli.js"]);
+            const report = engine.executeOnFiles(["lib/cli.js"]);
 
             assert.lengthOf(report.results, 1);
             assert.lengthOf(report.results[0].messages, 1);
             assert.isTrue(report.results[0].messages[0].fatal);
         });
 
-        it("should report zero messages when given a directory with a .js2 file", function() {
+        it("should report zero messages when given a directory with a .js2 file", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
                 extensions: [".js2"]
             });
 
-            var report = engine.executeOnFiles([getFixturePath("files/foo.js2")]);
+            const report = engine.executeOnFiles([getFixturePath("files/foo.js2")]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should report zero messages when given a directory with a .js and a .js2 file", function() {
+        it("should report zero messages when given a directory with a .js and a .js2 file", () => {
 
             engine = new CLIEngine({
                 extensions: [".js", ".js2"],
@@ -458,14 +602,14 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath("..")
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/"]);
+            const report = engine.executeOnFiles(["fixtures/files/"]);
 
             assert.equal(report.results.length, 2);
             assert.equal(report.results[0].messages.length, 0);
             assert.equal(report.results[1].messages.length, 0);
         });
 
-        it("should report zero messages when given a '**' pattern with a .js and a .js2 file", function() {
+        it("should report zero messages when given a '**' pattern with a .js and a .js2 file", () => {
 
             engine = new CLIEngine({
                 extensions: [".js", ".js2"],
@@ -473,21 +617,21 @@ describe("CLIEngine", function() {
                 cwd: path.join(fixtureDir, "..")
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/*"]);
+            const report = engine.executeOnFiles(["fixtures/files/*"]);
 
             assert.equal(report.results.length, 2);
             assert.equal(report.results[0].messages.length, 0);
             assert.equal(report.results[1].messages.length, 0);
         });
 
-        it("should report on all files passed explicitly, even if ignored by default", function() {
+        it("should report on all files passed explicitly, even if ignored by default", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath("cli-engine")
             });
 
-            var report = engine.executeOnFiles(["node_modules/foo.js"]);
-            var expectedMsg = "File ignored by default. Use \"--ignore-pattern \'!node_modules/*\'\" to override.";
+            const report = engine.executeOnFiles(["node_modules/foo.js"]);
+            const expectedMsg = "File ignored by default. Use \"--ignore-pattern '!node_modules/*'\" to override.";
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].errorCount, 0);
@@ -495,31 +639,47 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[0].message, expectedMsg);
         });
 
-        it("should not check default ignored files without --no-ignore flag", function() {
+        it("should report on globs with explicit inclusion of dotfiles, even though ignored by default", () => {
+
+            engine = new CLIEngine({
+                cwd: getFixturePath("cli-engine"),
+                rules: {
+                    quotes: [2, "single"]
+                }
+            });
+
+            const report = engine.executeOnFiles(["hidden/.hiddenfolder/*.js"]);
+
+            assert.equal(report.results.length, 1);
+            assert.equal(report.results[0].errorCount, 1);
+            assert.equal(report.results[0].warningCount, 0);
+        });
+
+        it("should not check default ignored files without --no-ignore flag", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath("cli-engine")
             });
 
-            var report = engine.executeOnFiles(["node_modules"]);
+            const report = engine.executeOnFiles(["node_modules"]);
 
             assert.equal(report.results.length, 0);
         });
 
         // https://github.com/eslint/eslint/issues/5547
-        it("should not check node_modules files even with --no-ignore flag", function() {
+        it("should not check node_modules files even with --no-ignore flag", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath("cli-engine"),
                 ignore: false
             });
 
-            var report = engine.executeOnFiles(["node_modules"]);
+            const report = engine.executeOnFiles(["node_modules"]);
 
             assert.equal(report.results.length, 0);
         });
 
-        it("should not check .hidden files if they are passed explicitly without --no-ignore flag", function() {
+        it("should not check .hidden files if they are passed explicitly without --no-ignore flag", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath(".."),
@@ -529,8 +689,8 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/.bar.js"]);
-            var expectedMsg = "File ignored by default.  Use a negated ignore pattern (like \"--ignore-pattern \'!<relative/path/to/filename>\'\") to override.";
+            const report = engine.executeOnFiles(["fixtures/files/.bar.js"]);
+            const expectedMsg = "File ignored by default.  Use a negated ignore pattern (like \"--ignore-pattern '!<relative/path/to/filename>'\") to override.";
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].errorCount, 0);
@@ -538,7 +698,7 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[0].message, expectedMsg);
         });
 
-        it("should check .hidden files if they are passed explicitly with --no-ignore flag", function() {
+        it("should check .hidden files if they are passed explicitly with --no-ignore flag", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath(".."),
@@ -549,7 +709,7 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/.bar.js"]);
+            const report = engine.executeOnFiles(["fixtures/files/.bar.js"]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].warningCount, 0);
@@ -557,7 +717,27 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[0].ruleId, "quotes");
         });
 
-        it("should report zero messages when given a pattern with a .js and a .js2 file", function() {
+        it("should check .hidden files if they are unignored with an --ignore-pattern", () => {
+
+            engine = new CLIEngine({
+                cwd: getFixturePath("cli-engine"),
+                ignore: true,
+                useEslintrc: false,
+                ignorePattern: "!.hidden*",
+                rules: {
+                    quotes: [2, "single"]
+                }
+            });
+
+            const report = engine.executeOnFiles(["hidden/"]);
+
+            assert.equal(report.results.length, 1);
+            assert.equal(report.results[0].warningCount, 0);
+            assert.equal(report.results[0].errorCount, 1);
+            assert.equal(report.results[0].messages[0].ruleId, "quotes");
+        });
+
+        it("should report zero messages when given a pattern with a .js and a .js2 file", () => {
 
             engine = new CLIEngine({
                 extensions: [".js", ".js2"],
@@ -565,20 +745,20 @@ describe("CLIEngine", function() {
                 cwd: path.join(fixtureDir, "..")
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/*.?s*"]);
+            const report = engine.executeOnFiles(["fixtures/files/*.?s*"]);
 
             assert.equal(report.results.length, 2);
             assert.equal(report.results[0].messages.length, 0);
             assert.equal(report.results[1].messages.length, 0);
         });
 
-        it("should return one error message when given a config with rules with options and severity level set to error", function() {
+        it("should return one error message when given a config with rules with options and severity level set to error", () => {
 
             engine = new CLIEngine({
                 cwd: getFixturePath("configurations"),
                 configFile: getFixturePath("configurations", "quotes-error.json")
             });
-            var report = engine.executeOnFiles([getFixturePath("single-quoted.js")]);
+            const report = engine.executeOnFiles([getFixturePath("single-quoted.js")]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 1);
@@ -590,14 +770,14 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].warningCount, 0);
         });
 
-        it("should return two messages when given a config file and a directory of files", function() {
+        it("should return two messages when given a config file and a directory of files", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
                 configFile: getFixturePath("configurations", "semi-error.json")
             });
 
-            var report = engine.executeOnFiles([getFixturePath("formatters")]);
+            const report = engine.executeOnFiles([getFixturePath("formatters")]);
 
             assert.equal(report.results.length, 3);
             assert.equal(report.errorCount, 0);
@@ -613,33 +793,33 @@ describe("CLIEngine", function() {
             assert.equal(report.results[2].warningCount, 0);
         });
 
-        it("should process when file is given by not specifying extensions", function() {
+        it("should process when file is given by not specifying extensions", () => {
 
             engine = new CLIEngine({
                 ignore: false,
                 cwd: path.join(fixtureDir, "..")
             });
 
-            var report = engine.executeOnFiles(["fixtures/files/foo.js2"]);
+            const report = engine.executeOnFiles(["fixtures/files/foo.js2"]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages when given a config with environment set to browser", function() {
+        it("should return zero messages when given a config with environment set to browser", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
                 configFile: getFixturePath("configurations", "env-browser.json")
             });
 
-            var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-browser.js"))]);
+            const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-browser.js"))]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages when given an option to set environment to browser", function() {
+        it("should return zero messages when given an option to set environment to browser", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
@@ -650,26 +830,26 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-browser.js"))]);
+            const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-browser.js"))]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages when given a config with environment set to Node.js", function() {
+        it("should return zero messages when given a config with environment set to Node.js", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
                 configFile: getFixturePath("configurations", "env-node.json")
             });
 
-            var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-node.js"))]);
+            const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("globals-node.js"))]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should not return results from previous call when calling more than once", function() {
+        it("should not return results from previous call when calling more than once", () => {
 
             engine = new CLIEngine({
                 cwd: path.join(fixtureDir, ".."),
@@ -679,10 +859,10 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var failFilePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
-            var passFilePath = fs.realpathSync(getFixturePath("passing.js"));
+            const failFilePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
+            const passFilePath = fs.realpathSync(getFixturePath("passing.js"));
 
-            var report = engine.executeOnFiles([failFilePath]);
+            let report = engine.executeOnFiles([failFilePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, failFilePath);
@@ -697,39 +877,39 @@ describe("CLIEngine", function() {
 
         });
 
-        it("should return zero messages when given a directory with eslint excluded files in the directory", function() {
+        it("should return zero messages when given a directory with eslint excluded files in the directory", () => {
 
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore")
             });
 
-            var report = engine.executeOnFiles([getFixturePath("./")]);
+            const report = engine.executeOnFiles([getFixturePath("./")]);
 
             assert.equal(report.results.length, 0);
         });
 
-        it("should return zero messages when all given files are ignored", function() {
+        it("should return zero messages when all given files are ignored", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore")
             });
 
-            var report = engine.executeOnFiles(["tests/fixtures/"]);
+            const report = engine.executeOnFiles(["tests/fixtures/"]);
 
             assert.equal(report.results.length, 0);
         });
 
-        it("should return zero messages when all given files are ignored event with a `./` prefix", function() {
+        it("should return zero messages when all given files are ignored event with a `./` prefix", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore")
             });
 
-            var report = engine.executeOnFiles(["./tests/fixtures/"]);
+            const report = engine.executeOnFiles(["./tests/fixtures/"]);
 
             assert.equal(report.results.length, 0);
         });
 
         // https://github.com/eslint/eslint/issues/3788
-        it("should ignore one-level down node_modules when ignore file has 'node_modules/' in it", function() {
+        it("should ignore one-level down node_modules when ignore file has 'node_modules/' in it", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath("cli-engine", "nested_node_modules", ".eslintignore"),
                 useEslintrc: false,
@@ -739,7 +919,7 @@ describe("CLIEngine", function() {
                 cwd: getFixturePath("cli-engine", "nested_node_modules")
             });
 
-            var report = engine.executeOnFiles(["."]);
+            const report = engine.executeOnFiles(["."]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].errorCount, 0);
@@ -747,7 +927,7 @@ describe("CLIEngine", function() {
         });
 
         // https://github.com/eslint/eslint/issues/3812
-        it("should ignore all files when tests/fixtures/ is in ignore file", function() {
+        it("should ignore all files when tests/fixtures/ is in ignore file", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath("cli-engine/.eslintignore2"),
                 useEslintrc: false,
@@ -756,30 +936,30 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var report = engine.executeOnFiles(["./tests/fixtures/cli-engine/"]);
+            const report = engine.executeOnFiles(["./tests/fixtures/cli-engine/"]);
 
             assert.equal(report.results.length, 0);
         });
 
-        it("should return zero messages when all given files are ignored via ignore-pattern", function() {
+        it("should return zero messages when all given files are ignored via ignore-pattern", () => {
             engine = new CLIEngine({
                 ignorePattern: "tests/fixtures/single-quoted.js"
             });
 
-            var report = engine.executeOnFiles(["tests/fixtures/*-quoted.js"]);
+            const report = engine.executeOnFiles(["tests/fixtures/*-quoted.js"]);
 
             assert.equal(report.results.length, 0);
         });
 
-        it("should return a warning when an explicitly given file is ignored", function() {
+        it("should return a warning when an explicitly given file is ignored", () => {
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore"),
                 cwd: getFixturePath()
             });
 
-            var filePath = getFixturePath("passing.js");
+            const filePath = getFixturePath("passing.js");
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.errorCount, 0);
@@ -791,7 +971,7 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].warningCount, 1);
         });
 
-        it("should return two messages when given a file in excluded files list while ignore is off", function() {
+        it("should return two messages when given a file in excluded files list while ignore is off", () => {
 
             engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore"),
@@ -801,9 +981,9 @@ describe("CLIEngine", function() {
                 }
             });
 
-            var filePath = fs.realpathSync(getFixturePath("undef.js"));
+            const filePath = fs.realpathSync(getFixturePath("undef.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
@@ -813,37 +993,37 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[1].severity, 2);
         });
 
-        it("should return zero messages when executing a file with a shebang", function() {
+        it("should return zero messages when executing a file with a shebang", () => {
 
             engine = new CLIEngine({
                 ignore: false
             });
 
-            var report = engine.executeOnFiles([getFixturePath("shebang.js")]);
+            const report = engine.executeOnFiles([getFixturePath("shebang.js")]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should give a warning when loading a custom rule that doesn't exist", function() {
+        it("should give a warning when loading a custom rule that doesn't exist", () => {
 
             engine = new CLIEngine({
                 ignore: false,
                 rulesPaths: [getFixturePath("rules", "dir1")],
                 configFile: getFixturePath("rules", "missing-rule.json")
             });
-            var report = engine.executeOnFiles([getFixturePath("rules", "test", "test-custom-rule.js")]);
+            const report = engine.executeOnFiles([getFixturePath("rules", "test", "test-custom-rule.js")]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].messages.length, 1);
             assert.equal(report.results[0].messages[0].ruleId, "missing-rule");
             assert.equal(report.results[0].messages[0].severity, 1);
-            assert.equal(report.results[0].messages[0].message, "Definition for rule \'missing-rule\' was not found");
+            assert.equal(report.results[0].messages[0].message, "Definition for rule 'missing-rule' was not found");
 
 
         });
 
-        it("should throw an error when loading a bad custom rule", function() {
+        it("should throw an error when loading a bad custom rule", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -852,12 +1032,12 @@ describe("CLIEngine", function() {
             });
 
 
-            assert.throws(function() {
+            assert.throws(() => {
                 engine.executeOnFiles([getFixturePath("rules", "test", "test-custom-rule.js")]);
             }, /Error while loading rule 'custom-rule'/);
         });
 
-        it("should return one message when a custom rule matches a file", function() {
+        it("should return one message when a custom rule matches a file", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -866,9 +1046,9 @@ describe("CLIEngine", function() {
                 configFile: getFixturePath("rules", "eslint.json")
             });
 
-            var filePath = fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"));
+            const filePath = fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
@@ -877,19 +1057,19 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[0].severity, 1);
         });
 
-        it("should load custom rule from the provided cwd", function() {
-            var cwd = path.resolve(getFixturePath("rules"));
+        it("should load custom rule from the provided cwd", () => {
+            const cwd = path.resolve(getFixturePath("rules"));
 
             engine = new CLIEngine({
                 ignore: false,
-                cwd: cwd,
+                cwd,
                 rulePaths: ["./"],
                 configFile: "eslint.json"
             });
 
-            var filePath = fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"));
+            const filePath = fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
@@ -898,7 +1078,7 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[0].severity, 1);
         });
 
-        it("should return messages when multiple custom rules match a file", function() {
+        it("should return messages when multiple custom rules match a file", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -909,9 +1089,9 @@ describe("CLIEngine", function() {
                 configFile: getFixturePath("rules", "multi-rulesdirs.json")
             });
 
-            var filePath = fs.realpathSync(getFixturePath("rules", "test-multi-rulesdirs.js"));
+            const filePath = fs.realpathSync(getFixturePath("rules", "test-multi-rulesdirs.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
@@ -922,23 +1102,23 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].messages[1].severity, 2);
         });
 
-        it("should return zero messages when executing without useEslintrc flag", function() {
+        it("should return zero messages when executing without useEslintrc flag", () => {
 
             engine = new CLIEngine({
                 ignore: false,
                 useEslintrc: false
             });
 
-            var filePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
+            const filePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages when executing without useEslintrc flag in Node.js environment", function() {
+        it("should return zero messages when executing without useEslintrc flag in Node.js environment", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -946,16 +1126,16 @@ describe("CLIEngine", function() {
                 envs: ["node"]
             });
 
-            var filePath = fs.realpathSync(getFixturePath("process-exit.js"));
+            const filePath = fs.realpathSync(getFixturePath("process-exit.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages when executing with base-config flag set to false", function() {
+        it("should return zero messages when executing with base-config flag set to false", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -963,16 +1143,16 @@ describe("CLIEngine", function() {
                 useEslintrc: false
             });
 
-            var filePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
+            const filePath = fs.realpathSync(getFixturePath("missing-semicolon.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages and ignore .eslintrc files when executing with no-eslintrc flag", function() {
+        it("should return zero messages and ignore .eslintrc files when executing with no-eslintrc flag", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -980,16 +1160,16 @@ describe("CLIEngine", function() {
                 envs: ["node"]
             });
 
-            var filePath = fs.realpathSync(getFixturePath("eslintrc", "quotes.js"));
+            const filePath = fs.realpathSync(getFixturePath("eslintrc", "quotes.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should return zero messages and ignore package.json files when executing with no-eslintrc flag", function() {
+        it("should return zero messages and ignore package.json files when executing with no-eslintrc flag", () => {
 
             engine = new CLIEngine({
                 ignore: false,
@@ -997,18 +1177,18 @@ describe("CLIEngine", function() {
                 envs: ["node"]
             });
 
-            var filePath = fs.realpathSync(getFixturePath("packagejson", "quotes.js"));
+            const filePath = fs.realpathSync(getFixturePath("packagejson", "quotes.js"));
 
-            var report = engine.executeOnFiles([filePath]);
+            const report = engine.executeOnFiles([filePath]);
 
             assert.equal(report.results.length, 1);
             assert.equal(report.results[0].filePath, filePath);
             assert.equal(report.results[0].messages.length, 0);
         });
 
-        it("should not fail if an ignored file cannot be resolved", function() {
+        it("should not fail if an ignored file cannot be resolved", () => {
 
-            var fakeFS = leche.fake(fs),
+            const fakeFS = leche.fake(fs),
                 LocalCLIEngine = proxyquire("../../lib/cli-engine", {
                     fs: fakeFS
                 });
@@ -1021,20 +1201,20 @@ describe("CLIEngine", function() {
                 ignorePattern: "tests"
             });
 
-            assert.doesNotThrow(function() {
+            assert.doesNotThrow(() => {
                 engine.executeOnFiles(["tests/fixtures/file-not-found.js"]);
             });
 
         });
 
-        describe("Fix Mode", function() {
+        describe("Fix Mode", () => {
 
-            it("should return fixed text on multiple files when in fix mode", function() {
+            it("should return fixed text on multiple files when in fix mode", () => {
 
                 /**
                  * Converts CRLF to LF in output.
                  * This is a workaround for git's autocrlf option on Windows.
-                 * @param {object} result - A result object to convert.
+                 * @param {Object} result - A result object to convert.
                  * @returns {void}
                  */
                 function convertCRLF(result) {
@@ -1056,7 +1236,7 @@ describe("CLIEngine", function() {
                     }
                 });
 
-                var report = engine.executeOnFiles([path.resolve(fixtureDir, fixtureDir + "/fixmode")]);
+                const report = engine.executeOnFiles([path.resolve(fixtureDir, `${fixtureDir}/fixmode`)]);
 
                 report.results.forEach(convertCRLF);
                 assert.deepEqual(report, {
@@ -1118,24 +1298,24 @@ describe("CLIEngine", function() {
 
         // These tests have to do with https://github.com/eslint/eslint/issues/963
 
-        describe("configuration hierarchy", function() {
+        describe("configuration hierarchy", () => {
 
             // Default configuration - blank
-            it("should return zero messages when executing with no .eslintrc", function() {
+            it("should return zero messages when executing with no .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // No default configuration rules - conf/environments.js (/*eslint-env node*/)
-            it("should return zero messages when executing with no .eslintrc in the Node.js environment", function() {
+            it("should return zero messages when executing with no .eslintrc in the Node.js environment", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
@@ -1143,46 +1323,46 @@ describe("CLIEngine", function() {
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes-node.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes-node.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Project configuration - first level .eslintrc
-            it("should return zero messages when executing with .eslintrc in the Node.js environment", function() {
+            it("should return zero messages when executing with .eslintrc in the Node.js environment", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/process-exit.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/process-exit.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Project configuration - first level .eslintrc
-            it("should return zero messages when executing with .eslintrc in the Node.js environment", function() {
+            it("should return zero messages when executing with .eslintrc in the Node.js environment", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/process-exit.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/process-exit.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Project configuration - first level .eslintrc
-            it("should return one message when executing with .eslintrc", function() {
+            it("should return one message when executing with .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1191,13 +1371,13 @@ describe("CLIEngine", function() {
             });
 
             // Project configuration - second level .eslintrc
-            it("should return one message when executing with local .eslintrc that overrides parent .eslintrc", function() {
+            it("should return one message when executing with local .eslintrc that overrides parent .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/subbroken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/subbroken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1206,13 +1386,13 @@ describe("CLIEngine", function() {
             });
 
             // Project configuration - third level .eslintrc
-            it("should return one message when executing with local .eslintrc that overrides parent and grandparent .eslintrc", function() {
+            it("should return one message when executing with local .eslintrc that overrides parent and grandparent .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/subbroken/subsubbroken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/subbroken/subsubbroken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1221,13 +1401,13 @@ describe("CLIEngine", function() {
             });
 
             // Project configuration - first level package.json
-            it("should return one message when executing with package.json", function() {
+            it("should return one message when executing with package.json", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/packagejson/subdir/wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/packagejson/subdir/wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1236,26 +1416,26 @@ describe("CLIEngine", function() {
             });
 
              // Project configuration - second level package.json
-            it("should return zero messages when executing with local package.json that overrides parent package.json", function() {
+            it("should return zero messages when executing with local package.json that overrides parent package.json", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/packagejson/subdir/subsubdir/wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/packagejson/subdir/subsubdir/wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Project configuration - third level package.json
-            it("should return one message when executing with local package.json that overrides parent and grandparent package.json", function() {
+            it("should return one message when executing with local package.json that overrides parent and grandparent package.json", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/packagejson/subdir/subsubdir/subsubsubdir/wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/packagejson/subdir/subsubdir/subsubsubdir/wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1264,13 +1444,13 @@ describe("CLIEngine", function() {
             });
 
             // Project configuration - .eslintrc overrides package.json in same directory
-            it("should return one message when executing with .eslintrc that overrides a package.json in the same directory", function() {
+            it("should return one message when executing with .eslintrc that overrides a package.json in the same directory", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/packagejson/wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/packagejson/wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1279,14 +1459,14 @@ describe("CLIEngine", function() {
             });
 
             // Command line configuration - --config with first level .eslintrc
-            it("should return two messages when executing with config file that adds to local .eslintrc", function() {
+            it("should return two messages when executing with config file that adds to local .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
-                    configFile: fixtureDir + "/config-hierarchy/broken/add-conf.yaml"
+                    configFile: `${fixtureDir}/config-hierarchy/broken/add-conf.yaml`
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
@@ -1297,28 +1477,28 @@ describe("CLIEngine", function() {
             });
 
             // Command line configuration - --config with first level .eslintrc
-            it("should return no messages when executing with config file that overrides local .eslintrc", function() {
+            it("should return no messages when executing with config file that overrides local .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
-                    configFile: fixtureDir + "/config-hierarchy/broken/override-conf.yaml"
+                    configFile: `${fixtureDir}/config-hierarchy/broken/override-conf.yaml`
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Command line configuration - --config with second level .eslintrc
-            it("should return two messages when executing with config file that adds to local and parent .eslintrc", function() {
+            it("should return two messages when executing with config file that adds to local and parent .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
-                    configFile: fixtureDir + "/config-hierarchy/broken/add-conf.yaml"
+                    configFile: `${fixtureDir}/config-hierarchy/broken/add-conf.yaml`
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/subbroken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/subbroken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
@@ -1329,14 +1509,14 @@ describe("CLIEngine", function() {
             });
 
             // Command line configuration - --config with second level .eslintrc
-            it("should return one message when executing with config file that overrides local and parent .eslintrc", function() {
+            it("should return one message when executing with config file that overrides local and parent .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     configFile: getFixturePath("config-hierarchy/broken/override-conf.yaml")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/subbroken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/subbroken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1345,21 +1525,21 @@ describe("CLIEngine", function() {
             });
 
             // Command line configuration - --config with first level .eslintrc
-            it("should return no messages when executing with config file that overrides local .eslintrc", function() {
+            it("should return no messages when executing with config file that overrides local .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
-                    configFile: fixtureDir + "/config-hierarchy/broken/override-conf.yaml"
+                    configFile: `${fixtureDir}/config-hierarchy/broken/override-conf.yaml`
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 0);
             });
 
             // Command line configuration - --rule with --config and first level .eslintrc
-            it("should return one message when executing with command line rule and config file that overrides local .eslintrc", function() {
+            it("should return one message when executing with command line rule and config file that overrides local .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
@@ -1369,7 +1549,7 @@ describe("CLIEngine", function() {
                     }
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(fixtureDir + "/config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([fs.realpathSync(`${fixtureDir}/config-hierarchy/broken/console-wrong-quotes.js`)]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1378,7 +1558,7 @@ describe("CLIEngine", function() {
             });
 
             // Command line configuration - --rule with --config and first level .eslintrc
-            it("should return one message when executing with command line rule and config file that overrides local .eslintrc", function() {
+            it("should return one message when executing with command line rule and config file that overrides local .eslintrc", () => {
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
@@ -1388,7 +1568,7 @@ describe("CLIEngine", function() {
                     }
                 });
 
-                var report = engine.executeOnFiles([getFixturePath("config-hierarchy/broken/console-wrong-quotes.js")]);
+                const report = engine.executeOnFiles([getFixturePath("config-hierarchy/broken/console-wrong-quotes.js")]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 1);
@@ -1398,64 +1578,64 @@ describe("CLIEngine", function() {
 
         });
 
-        describe("plugins", function() {
-            it("should return two messages when executing with config file that specifies a plugin", function() {
+        describe("plugins", () => {
+            it("should return two messages when executing with config file that specifies a plugin", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     configFile: getFixturePath("configurations", "plugins-with-prefix.json"),
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test/test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test/test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
                 assert.equal(report.results[0].messages[0].ruleId, "example/example-rule");
             });
 
-            it("should return two messages when executing with config file that specifies a plugin with namespace", function() {
+            it("should return two messages when executing with config file that specifies a plugin with namespace", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     configFile: getFixturePath("configurations", "plugins-with-prefix-and-namespace.json"),
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
                 assert.equal(report.results[0].messages[0].ruleId, "example/example-rule");
             });
 
-            it("should return two messages when executing with config file that specifies a plugin without prefix", function() {
+            it("should return two messages when executing with config file that specifies a plugin without prefix", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     configFile: getFixturePath("configurations", "plugins-without-prefix.json"),
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
                 assert.equal(report.results[0].messages[0].ruleId, "example/example-rule");
             });
 
-            it("should return two messages when executing with config file that specifies a plugin without prefix and with namespace", function() {
+            it("should return two messages when executing with config file that specifies a plugin without prefix and with namespace", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     configFile: getFixturePath("configurations", "plugins-without-prefix-with-namespace.json"),
                     useEslintrc: false
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
                 assert.equal(report.results[0].messages[0].ruleId, "example/example-rule");
             });
 
-            it("should return two messages when executing with cli option that specifies a plugin", function() {
+            it("should return two messages when executing with cli option that specifies a plugin", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     useEslintrc: false,
@@ -1463,14 +1643,14 @@ describe("CLIEngine", function() {
                     rules: { "example/example-rule": 1 }
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
                 assert.equal(report.results[0].messages[0].ruleId, "example/example-rule");
             });
 
-            it("should return two messages when executing with cli option that specifies preloaded plugin", function() {
+            it("should return two messages when executing with cli option that specifies preloaded plugin", () => {
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
                     useEslintrc: false,
@@ -1480,7 +1660,7 @@ describe("CLIEngine", function() {
 
                 engine.addPlugin("eslint-plugin-test", { rules: { "example-rule": require("../fixtures/rules/custom-rule") } });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("rules", "test", "test-custom-rule.js"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
@@ -1488,17 +1668,18 @@ describe("CLIEngine", function() {
             });
         });
 
-        describe("cache", function() {
-            var sandbox;
+        describe("cache", () => {
+            let sandbox;
 
             /**
-             * helper method to delete the cache files created during testing
+             * helper method to delete a file without caring about exceptions
+             *
+             * @param {string} filePath The file path
              * @returns {void}
              */
-            function delCache() {
+            function doDelete(filePath) {
                 try {
-                    fs.unlinkSync(path.resolve(".eslintcache"));
-                    fs.unlinkSync(path.resolve(".cache/custom-cache"));
+                    fs.unlinkSync(filePath);
                 } catch (ex) {
 
                     /*
@@ -1508,22 +1689,32 @@ describe("CLIEngine", function() {
                 }
             }
 
-            beforeEach(function() {
-                delCache();
+            /**
+             * helper method to delete the cache files created during testing
+             * @returns {void}
+             */
+            function deleteCache() {
+                doDelete(path.resolve(".eslintcache"));
+                doDelete(path.resolve(".cache/custom-cache"));
+            }
+
+            beforeEach(() => {
+                deleteCache();
                 sandbox = sinon.sandbox.create();
             });
-            afterEach(function() {
+
+            afterEach(() => {
                 sandbox.restore();
-                delCache();
+                deleteCache();
             });
 
-            describe("when the cacheFile is a directory or looks like a directory", function() {
+            describe("when the cacheFile is a directory or looks like a directory", () => {
 
                 /**
                 * helper method to delete the cache files created during testing
                 * @returns {void}
                 */
-                function delCacheDir() {
+                function deleteCacheDir() {
                     try {
                         fs.unlinkSync("./tmp/.cacheFileDir/.cache_hashOfCurrentWorkingDirectory");
                     } catch (ex) {
@@ -1534,16 +1725,16 @@ describe("CLIEngine", function() {
                          */
                     }
                 }
-                beforeEach(function() {
-                    delCacheDir();
+                beforeEach(() => {
+                    deleteCacheDir();
                 });
 
-                afterEach(function() {
-                    delCacheDir();
+                afterEach(() => {
+                    deleteCacheDir();
                 });
 
-                it("should create the cache file inside the provided directory", function() {
-                    assert.isFalse(fs.existsSync(path.resolve("./tmp/.cacheFileDir/.cache_hashOfCurrentWorkingDirectory")), "the cache for eslint does not exist");
+                it("should create the cache file inside the provided directory", () => {
+                    assert.isFalse(shell.test("-d", path.resolve("./tmp/.cacheFileDir/.cache_hashOfCurrentWorkingDirectory")), "the cache for eslint does not exist");
 
                     engine = new CLIEngine({
                         useEslintrc: false,
@@ -1559,18 +1750,18 @@ describe("CLIEngine", function() {
                         ignore: false
                     });
 
-                    var file = getFixturePath("cache/src", "test-file.js");
+                    const file = getFixturePath("cache/src", "test-file.js");
 
                     engine.executeOnFiles([file]);
 
-                    assert.isTrue(fs.existsSync(path.resolve("./tmp/.cacheFileDir/.cache_" + hash(process.cwd()))), "the cache for eslint was created");
+                    assert.isTrue(shell.test("-f", path.resolve(`./tmp/.cacheFileDir/.cache_${hash(process.cwd())}`)), "the cache for eslint was created");
 
                     sandbox.restore();
                 });
             });
 
-            it("should create the cache file inside the provided directory using the cacheLocation option", function() {
-                assert.isFalse(fs.existsSync(path.resolve("./tmp/.cacheFileDir/.cache_hashOfCurrentWorkingDirectory")), "the cache for eslint does not exist");
+            it("should create the cache file inside the provided directory using the cacheLocation option", () => {
+                assert.isFalse(shell.test("-d", path.resolve("./tmp/.cacheFileDir/.cache_hashOfCurrentWorkingDirectory")), "the cache for eslint does not exist");
 
                 engine = new CLIEngine({
                     useEslintrc: false,
@@ -1586,22 +1777,22 @@ describe("CLIEngine", function() {
                     ignore: false
                 });
 
-                var file = getFixturePath("cache/src", "test-file.js");
+                const file = getFixturePath("cache/src", "test-file.js");
 
                 engine.executeOnFiles([file]);
 
-                assert.isTrue(fs.existsSync(path.resolve("./tmp/.cacheFileDir/.cache_" + hash(process.cwd()))), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", path.resolve(`./tmp/.cacheFileDir/.cache_${hash(process.cwd())}`)), "the cache for eslint was created");
 
                 sandbox.restore();
             });
 
-            it("should create the cache file inside cwd when no cacheLocation provided", function() {
-                var cwd = path.resolve(getFixturePath("cli-engine"));
+            it("should create the cache file inside cwd when no cacheLocation provided", () => {
+                const cwd = path.resolve(getFixturePath("cli-engine"));
 
                 engine = new CLIEngine({
                     useEslintrc: false,
                     cache: true,
-                    cwd: cwd,
+                    cwd,
                     rules: {
                         "no-console": 0
                     },
@@ -1609,15 +1800,15 @@ describe("CLIEngine", function() {
                     ignore: false
                 });
 
-                var file = getFixturePath("cli-engine", "console.js");
+                const file = getFixturePath("cli-engine", "console.js");
 
                 engine.executeOnFiles([file]);
 
-                assert.isTrue(fs.existsSync(path.resolve(cwd, ".eslintcache")), "the cache for eslint was created at provided cwd");
+                assert.isTrue(shell.test("-f", path.resolve(cwd, ".eslintcache")), "the cache for eslint was created at provided cwd");
             });
 
-            it("should invalidate the cache if the configuration changed between executions", function() {
-                assert.isFalse(fs.existsSync(path.resolve(".eslintcache")), "the cache for eslint does not exist");
+            it("should invalidate the cache if the configuration changed between executions", () => {
+                assert.isFalse(shell.test("-f", path.resolve(".eslintcache")), "the cache for eslint does not exist");
 
                 engine = new CLIEngine({
                     useEslintrc: false,
@@ -1632,17 +1823,17 @@ describe("CLIEngine", function() {
                     ignore: false
                 });
 
-                var spy = sandbox.spy(fs, "readFileSync");
+                let spy = sandbox.spy(fs, "readFileSync");
 
-                var file = getFixturePath("cache/src", "test-file.js");
+                let file = getFixturePath("cache/src", "test-file.js");
 
                 file = fs.realpathSync(file);
 
-                var result = engine.executeOnFiles([file]);
+                const result = engine.executeOnFiles([file]);
 
                 assert.equal(result.errorCount + result.warningCount, 0, "the file passed without errors or warnings");
                 assert.equal(spy.getCall(0).args[0], file, "the module read the file because is considered changed");
-                assert.isTrue(fs.existsSync(path.resolve(".eslintcache")), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", path.resolve(".eslintcache")), "the cache for eslint was created");
 
                 // destroy the spy
                 sandbox.restore();
@@ -1663,16 +1854,16 @@ describe("CLIEngine", function() {
                 // create a new spy
                 spy = sandbox.spy(fs, "readFileSync");
 
-                var cachedResult = engine.executeOnFiles([file]);
+                const cachedResult = engine.executeOnFiles([file]);
 
                 assert.equal(spy.getCall(0).args[0], file, "the module read the file because is considered changed because the config changed");
                 assert.equal(cachedResult.errorCount, 1, "since configuration changed the cache was not used an one error was reported");
-                assert.isTrue(fs.existsSync(path.resolve(".eslintcache")), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", path.resolve(".eslintcache")), "the cache for eslint was created");
             });
 
-            it("should remember the files from a previous run and do not operate on them if not changed", function() {
+            it("should remember the files from a previous run and do not operate on them if not changed", () => {
 
-                assert.isFalse(fs.existsSync(path.resolve(".eslintcache")), "the cache for eslint does not exist");
+                assert.isFalse(shell.test("-f", path.resolve(".eslintcache")), "the cache for eslint does not exist");
 
                 engine = new CLIEngine({
                     useEslintrc: false,
@@ -1687,16 +1878,16 @@ describe("CLIEngine", function() {
                     ignore: false
                 });
 
-                var spy = sandbox.spy(fs, "readFileSync");
+                let spy = sandbox.spy(fs, "readFileSync");
 
-                var file = getFixturePath("cache/src", "test-file.js");
+                let file = getFixturePath("cache/src", "test-file.js");
 
                 file = fs.realpathSync(file);
 
-                var result = engine.executeOnFiles([file]);
+                const result = engine.executeOnFiles([file]);
 
                 assert.equal(spy.getCall(0).args[0], file, "the module read the file because is considered changed");
-                assert.isTrue(fs.existsSync(path.resolve(".eslintcache")), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", path.resolve(".eslintcache")), "the cache for eslint was created");
 
                 // destroy the spy
                 sandbox.restore();
@@ -1717,7 +1908,7 @@ describe("CLIEngine", function() {
                 // create a new spy
                 spy = sandbox.spy(fs, "readFileSync");
 
-                var cachedResult = engine.executeOnFiles([file]);
+                const cachedResult = engine.executeOnFiles([file]);
 
                 assert.deepEqual(result, cachedResult, "the result is the same regardless of using cache or not");
 
@@ -1725,15 +1916,15 @@ describe("CLIEngine", function() {
                 assert.isFalse(spy.called, "the file was not loaded because it used the cache");
             });
 
-            it("should remember the files from a previous run and do not operate on then if not changed", function() {
+            it("should remember the files from a previous run and do not operate on then if not changed", () => {
 
-                var cacheFile = getFixturePath(".eslintcache");
-                var cliEngineOptions = {
+                const cacheFile = getFixturePath(".eslintcache");
+                const cliEngineOptions = {
                     useEslintrc: false,
 
                     // specifying cache true the cache will be created
                     cache: true,
-                    cacheFile: cacheFile,
+                    cacheFile,
                     rules: {
                         "no-console": 0,
                         "no-unused-vars": 2
@@ -1742,30 +1933,31 @@ describe("CLIEngine", function() {
                     cwd: path.join(fixtureDir, "..")
                 };
 
-                assert.isFalse(fs.existsSync(cacheFile), "the cache for eslint does not exist");
+                assert.isFalse(shell.test("-f", cacheFile), "the cache for eslint does not exist");
 
                 engine = new CLIEngine(cliEngineOptions);
 
-                var file = getFixturePath("cache/src", "test-file.js");
+                let file = getFixturePath("cache/src", "test-file.js");
 
                 file = fs.realpathSync(file);
 
                 engine.executeOnFiles([file]);
 
-                assert.isTrue(fs.existsSync(cacheFile), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint was created");
 
                 cliEngineOptions.cache = false;
                 engine = new CLIEngine(cliEngineOptions);
 
                 engine.executeOnFiles([file]);
 
-                assert.isFalse(fs.existsSync(cacheFile), "the cache for eslint was deleted since last run did not used the cache");
+                assert.isFalse(shell.test("-f", cacheFile), "the cache for eslint was deleted since last run did not used the cache");
             });
-            it("should not store in the cache a file that failed the test", function() {
 
-                var cacheFile = getFixturePath(".eslintcache");
+            it("should not store in the cache a file that failed the test", () => {
 
-                assert.isFalse(fs.existsSync(cacheFile), "the cache for eslint does not exist");
+                const cacheFile = getFixturePath(".eslintcache");
+
+                assert.isFalse(shell.test("-f", cacheFile), "the cache for eslint does not exist");
 
                 engine = new CLIEngine({
                     cwd: path.join(fixtureDir, ".."),
@@ -1773,7 +1965,7 @@ describe("CLIEngine", function() {
 
                     // specifying cache true the cache will be created
                     cache: true,
-                    cacheFile: cacheFile,
+                    cacheFile,
                     rules: {
                         "no-console": 0,
                         "no-unused-vars": 2
@@ -1781,29 +1973,200 @@ describe("CLIEngine", function() {
                     extensions: ["js"]
                 });
 
-                var badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
-                var goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
+                const badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
+                const goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
 
-                var result = engine.executeOnFiles([badFile, goodFile]);
+                const result = engine.executeOnFiles([badFile, goodFile]);
 
-                assert.isTrue(fs.existsSync(cacheFile), "the cache for eslint was created");
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint was created");
 
-                var cache = JSON.parse(fs.readFileSync(cacheFile));
+                const cache = JSON.parse(fs.readFileSync(cacheFile));
 
                 assert.isTrue(typeof cache[goodFile] === "object", "the entry for the good file is in the cache");
 
                 assert.isTrue(typeof cache[badFile] === "undefined", "the entry for the bad file is not in the cache");
 
-                var cachedResult = engine.executeOnFiles([badFile, goodFile]);
+                const cachedResult = engine.executeOnFiles([badFile, goodFile]);
 
                 assert.deepEqual(result, cachedResult, "result is the same with or without cache");
             });
 
-            describe("cacheFile", function() {
-                it("should use the specified cache file", function() {
-                    var customCacheFile = path.resolve(".cache/custom-cache");
+            it("should not contain in the cache a file that was deleted", () => {
 
-                    assert.isFalse(fs.existsSync(customCacheFile), "the cache for eslint does not exist");
+                const cacheFile = getFixturePath(".eslintcache");
+
+                doDelete(cacheFile);
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+
+                    // specifying cache true the cache will be created
+                    cache: true,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                const badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
+                const goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
+                const toBeDeletedFile = fs.realpathSync(getFixturePath("cache/src", "file-to-delete.js"));
+
+                engine.executeOnFiles([badFile, goodFile, toBeDeletedFile]);
+
+                let cache = JSON.parse(fs.readFileSync(cacheFile));
+
+                assert.isTrue(typeof cache[toBeDeletedFile] === "object", "the entry for the file to be deleted is in the cache");
+
+                // delete the file from the file system
+                fs.unlinkSync(toBeDeletedFile);
+
+                // file-entry-cache@2.0.0 will remove from the cache deleted files
+                // even when they were not part of the array of files to be analyzed
+                engine.executeOnFiles([badFile, goodFile]);
+
+                cache = JSON.parse(fs.readFileSync(cacheFile));
+
+                assert.isTrue(typeof cache[toBeDeletedFile] === "undefined", "the entry for the file to be deleted is not in the cache");
+            });
+
+            it("should contain files that were not visited in the cache provided they still exist", () => {
+
+                const cacheFile = getFixturePath(".eslintcache");
+
+                doDelete(cacheFile);
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+
+                    // specifying cache true the cache will be created
+                    cache: true,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                const badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
+                const goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
+                const testFile2 = fs.realpathSync(getFixturePath("cache/src", "test-file2.js"));
+
+                engine.executeOnFiles([badFile, goodFile, testFile2]);
+
+                let cache = JSON.parse(fs.readFileSync(cacheFile));
+
+                assert.isTrue(typeof cache[testFile2] === "object", "the entry for the test-file2 is in the cache");
+
+                // we pass a different set of files minus test-file2
+                // previous version of file-entry-cache would remove the non visited
+                // entries. 2.0.0 version will keep them unless they don't exist
+                engine.executeOnFiles([badFile, goodFile]);
+
+                cache = JSON.parse(fs.readFileSync(cacheFile));
+
+                assert.isTrue(typeof cache[testFile2] === "object", "the entry for the test-file2 is in the cache");
+            });
+
+            it("should not delete cache when executing on text", () => {
+                const cacheFile = getFixturePath(".eslintcache");
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint exists");
+
+                engine.executeOnText("var foo = 'bar';");
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint still exists");
+            });
+
+            it("should not delete cache when executing on text with a provided filename", () => {
+                const cacheFile = getFixturePath(".eslintcache");
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint exists");
+
+                engine.executeOnText("var bar = foo;", "fixtures/passing.js");
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint still exists");
+            });
+
+            it("should not delete cache when executing on files with --cache flag", () => {
+                const cacheFile = getFixturePath(".eslintcache");
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+                    cache: true,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                const file = getFixturePath("cli-engine", "console.js");
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint exists");
+
+                engine.executeOnFiles([file]);
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint still exists");
+            });
+
+            it("should delete cache when executing on files without --cache flag", () => {
+                const cacheFile = getFixturePath(".eslintcache");
+
+                engine = new CLIEngine({
+                    cwd: path.join(fixtureDir, ".."),
+                    useEslintrc: false,
+                    cacheFile,
+                    rules: {
+                        "no-console": 0,
+                        "no-unused-vars": 2
+                    },
+                    extensions: ["js"]
+                });
+
+                const file = getFixturePath("cli-engine", "console.js");
+
+                assert.isTrue(shell.test("-f", cacheFile), "the cache for eslint exists");
+
+                engine.executeOnFiles([file]);
+
+                assert.isFalse(shell.test("-f", cacheFile), "the cache for eslint has been deleted");
+            });
+
+            describe("cacheFile", () => {
+                it("should use the specified cache file", () => {
+                    const customCacheFile = path.resolve(".cache/custom-cache");
+
+                    assert.isFalse(shell.test("-f", customCacheFile), "the cache for eslint does not exist");
 
                     engine = new CLIEngine({
                         useEslintrc: false,
@@ -1821,28 +2184,28 @@ describe("CLIEngine", function() {
                         cwd: path.join(fixtureDir, "..")
                     });
 
-                    var badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
-                    var goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
+                    const badFile = fs.realpathSync(getFixturePath("cache/src", "fail-file.js"));
+                    const goodFile = fs.realpathSync(getFixturePath("cache/src", "test-file.js"));
 
-                    var result = engine.executeOnFiles([badFile, goodFile]);
+                    const result = engine.executeOnFiles([badFile, goodFile]);
 
-                    assert.isTrue(fs.existsSync(customCacheFile), "the cache for eslint was created");
+                    assert.isTrue(shell.test("-f", customCacheFile), "the cache for eslint was created");
 
-                    var cache = JSON.parse(fs.readFileSync(customCacheFile));
+                    const cache = JSON.parse(fs.readFileSync(customCacheFile));
 
                     assert.isTrue(typeof cache[goodFile] === "object", "the entry for the good file is in the cache");
 
                     assert.isTrue(typeof cache[badFile] === "undefined", "the entry for the bad file is not in the cache");
 
-                    var cachedResult = engine.executeOnFiles([badFile, goodFile]);
+                    const cachedResult = engine.executeOnFiles([badFile, goodFile]);
 
                     assert.deepEqual(result, cachedResult, "result is the same with or without cache");
                 });
             });
         });
 
-        describe("processors", function() {
-            it("should return two messages when executing with config file that specifies a processor", function() {
+        describe("processors", () => {
+            it("should return two messages when executing with config file that specifies a processor", () => {
                 engine = new CLIEngine({
                     configFile: getFixturePath("configurations", "processors.json"),
                     useEslintrc: false,
@@ -1850,12 +2213,12 @@ describe("CLIEngine", function() {
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("processors", "test", "test-processor.txt"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("processors", "test", "test-processor.txt"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
             });
-            it("should return two messages when executing with config file that specifies preloaded processor", function() {
+            it("should return two messages when executing with config file that specifies preloaded processor", () => {
                 engine = new CLIEngine({
                     useEslintrc: false,
                     plugins: ["test-processor"],
@@ -1870,22 +2233,22 @@ describe("CLIEngine", function() {
                 engine.addPlugin("test-processor", {
                     processors: {
                         ".txt": {
-                            preprocess: function(text) {
+                            preprocess(text) {
                                 return [text];
                             },
-                            postprocess: function(messages) {
+                            postprocess(messages) {
                                 return messages[0];
                             }
                         }
                     }
                 });
 
-                var report = engine.executeOnFiles([fs.realpathSync(getFixturePath("processors", "test", "test-processor.txt"))]);
+                const report = engine.executeOnFiles([fs.realpathSync(getFixturePath("processors", "test", "test-processor.txt"))]);
 
                 assert.equal(report.results.length, 1);
                 assert.equal(report.results[0].messages.length, 2);
             });
-            it("should run processors when calling executeOnFiles with config file that specifies a processor", function() {
+            it("should run processors when calling executeOnFiles with config file that specifies a processor", () => {
                 engine = new CLIEngine({
                     configFile: getFixturePath("configurations", "processors.json"),
                     useEslintrc: false,
@@ -1893,12 +2256,12 @@ describe("CLIEngine", function() {
                     cwd: path.join(fixtureDir, "..")
                 });
 
-                var report = engine.executeOnFiles([getFixturePath("processors", "test", "test-processor.txt")]);
+                const report = engine.executeOnFiles([getFixturePath("processors", "test", "test-processor.txt")]);
 
-                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used");
+                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used.");
                 assert.equal(report.results[0].messages[0].ruleId, "post-processed");
             });
-            it("should run processors when calling executeOnFiles with config file that specifies preloaded processor", function() {
+            it("should run processors when calling executeOnFiles with config file that specifies preloaded processor", () => {
                 engine = new CLIEngine({
                     useEslintrc: false,
                     plugins: ["test-processor"],
@@ -1913,10 +2276,10 @@ describe("CLIEngine", function() {
                 engine.addPlugin("test-processor", {
                     processors: {
                         ".txt": {
-                            preprocess: function(text) {
+                            preprocess(text) {
                                 return [text.replace("a()", "b()")];
                             },
-                            postprocess: function(messages) {
+                            postprocess(messages) {
                                 messages[0][0].ruleId = "post-processed";
                                 return messages[0];
                             }
@@ -1924,12 +2287,12 @@ describe("CLIEngine", function() {
                     }
                 });
 
-                var report = engine.executeOnFiles([getFixturePath("processors", "test", "test-processor.txt")]);
+                const report = engine.executeOnFiles([getFixturePath("processors", "test", "test-processor.txt")]);
 
-                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used");
+                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used.");
                 assert.equal(report.results[0].messages[0].ruleId, "post-processed");
             });
-            it("should run processors when calling executeOnText with config file that specifies a processor", function() {
+            it("should run processors when calling executeOnText with config file that specifies a processor", () => {
                 engine = new CLIEngine({
                     configFile: getFixturePath("configurations", "processors.json"),
                     useEslintrc: false,
@@ -1937,12 +2300,12 @@ describe("CLIEngine", function() {
                     ignore: false
                 });
 
-                var report = engine.executeOnText("function a() {console.log(\"Test\");}", "tests/fixtures/processors/test/test-processor.txt");
+                const report = engine.executeOnText("function a() {console.log(\"Test\");}", "tests/fixtures/processors/test/test-processor.txt");
 
-                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used");
+                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used.");
                 assert.equal(report.results[0].messages[0].ruleId, "post-processed");
             });
-            it("should run processors when calling executeOnText with config file that specifies preloaded processor", function() {
+            it("should run processors when calling executeOnText with config file that specifies preloaded processor", () => {
                 engine = new CLIEngine({
                     useEslintrc: false,
                     plugins: ["test-processor"],
@@ -1957,10 +2320,10 @@ describe("CLIEngine", function() {
                 engine.addPlugin("test-processor", {
                     processors: {
                         ".txt": {
-                            preprocess: function(text) {
+                            preprocess(text) {
                                 return [text.replace("a()", "b()")];
                             },
-                            postprocess: function(messages) {
+                            postprocess(messages) {
                                 messages[0][0].ruleId = "post-processed";
                                 return messages[0];
                             }
@@ -1968,25 +2331,25 @@ describe("CLIEngine", function() {
                     }
                 });
 
-                var report = engine.executeOnText("function a() {console.log(\"Test\");}", "tests/fixtures/processors/test/test-processor.txt");
+                const report = engine.executeOnText("function a() {console.log(\"Test\");}", "tests/fixtures/processors/test/test-processor.txt");
 
-                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used");
+                assert.equal(report.results[0].messages[0].message, "'b' is defined but never used.");
                 assert.equal(report.results[0].messages[0].ruleId, "post-processed");
             });
         });
     });
 
-    describe("getConfigForFile", function() {
+    describe("getConfigForFile", () => {
 
-        it("should return the info from Config#getConfig when called", function() {
+        it("should return the info from Config#getConfig when called", () => {
 
-            var engine = new CLIEngine({
+            const engine = new CLIEngine({
                 configFile: getFixturePath("configurations", "quotes-error.json")
             });
 
-            var configHelper = new Config(engine.options);
+            const configHelper = new Config(engine.options);
 
-            var filePath = getFixturePath("single-quoted.js");
+            const filePath = getFixturePath("single-quoted.js");
 
             assert.deepEqual(
                 engine.getConfigForFile(filePath),
@@ -1996,16 +2359,16 @@ describe("CLIEngine", function() {
         });
 
 
-        it("should return the config when run from within a subdir", function() {
+        it("should return the config when run from within a subdir", () => {
 
-            var engine = new CLIEngine({
+            const engine = new CLIEngine({
                 cwd: getFixturePath("config-hierarchy", "root-true", "parent", "root", "subdir")
             });
 
-            var configHelper = new Config(engine.options);
+            const configHelper = new Config(engine.options);
 
-            var filePath = getFixturePath("config-hierarchy", "root-true", "parent", "root", ".eslintrc");
-            var config = engine.getConfigForFile("./.eslintrc");
+            const filePath = getFixturePath("config-hierarchy", "root-true", "parent", "root", ".eslintrc");
+            const config = engine.getConfigForFile("./.eslintrc");
 
             assert.deepEqual(
                 config,
@@ -2016,20 +2379,20 @@ describe("CLIEngine", function() {
 
     });
 
-    describe("isPathIgnored", function() {
-        var sandbox;
+    describe("isPathIgnored", () => {
+        let sandbox;
 
-        beforeEach(function() {
+        beforeEach(() => {
             sandbox = sinon.sandbox.create();
             sandbox.stub(console, "info").returns(void 0);
         });
 
-        afterEach(function() {
+        afterEach(() => {
             sandbox.restore();
         });
 
-        it("should check if the given path is ignored", function() {
-            var engine = new CLIEngine({
+        it("should check if the given path is ignored", () => {
+            const engine = new CLIEngine({
                 ignorePath: getFixturePath(".eslintignore2"),
                 cwd: getFixturePath()
             });
@@ -2038,8 +2401,8 @@ describe("CLIEngine", function() {
             assert.isFalse(engine.isPathIgnored("passing.js"));
         });
 
-        it("should return false if ignoring is disabled", function() {
-            var engine = new CLIEngine({
+        it("should return false if ignoring is disabled", () => {
+            const engine = new CLIEngine({
                 ignore: false,
                 ignorePath: getFixturePath(".eslintignore2"),
                 cwd: getFixturePath()
@@ -2049,8 +2412,8 @@ describe("CLIEngine", function() {
         });
 
         // https://github.com/eslint/eslint/issues/5547
-        it("should return true for default ignores even if ignoring is disabled", function() {
-            var engine = new CLIEngine({
+        it("should return true for default ignores even if ignoring is disabled", () => {
+            const engine = new CLIEngine({
                 ignore: false,
                 cwd: getFixturePath("cli-engine")
             });
@@ -2060,31 +2423,31 @@ describe("CLIEngine", function() {
 
     });
 
-    describe("getFormatter()", function() {
+    describe("getFormatter()", () => {
 
-        it("should return a function when a bundled formatter is requested", function() {
-            var engine = new CLIEngine(),
+        it("should return a function when a bundled formatter is requested", () => {
+            const engine = new CLIEngine(),
                 formatter = engine.getFormatter("compact");
 
             assert.isFunction(formatter);
         });
 
-        it("should return a function when no argument is passed", function() {
-            var engine = new CLIEngine(),
+        it("should return a function when no argument is passed", () => {
+            const engine = new CLIEngine(),
                 formatter = engine.getFormatter();
 
             assert.isFunction(formatter);
         });
 
-        it("should return a function when a custom formatter is requested", function() {
-            var engine = new CLIEngine(),
+        it("should return a function when a custom formatter is requested", () => {
+            const engine = new CLIEngine(),
                 formatter = engine.getFormatter(getFixturePath("formatters", "simple.js"));
 
             assert.isFunction(formatter);
         });
 
-        it("should return a function when a custom formatter is requested, also if the path has backslashes", function() {
-            var engine = new CLIEngine({
+        it("should return a function when a custom formatter is requested, also if the path has backslashes", () => {
+            const engine = new CLIEngine({
                     cwd: path.join(fixtureDir, "..")
                 }),
                 formatter = engine.getFormatter(".\\fixtures\\formatters\\simple.js");
@@ -2092,93 +2455,95 @@ describe("CLIEngine", function() {
             assert.isFunction(formatter);
         });
 
-        it("should return null when a customer formatter doesn't exist", function() {
-            var engine = new CLIEngine(),
+        it("should return null when a customer formatter doesn't exist", () => {
+            const engine = new CLIEngine(),
                 formatterPath = getFixturePath("formatters", "doesntexist.js");
 
-            assert.throws(function() {
+            assert.throws(() => {
                 engine.getFormatter(formatterPath);
-            }, "There was a problem loading formatter: " + formatterPath + "\nError: Cannot find module '" + formatterPath + "'");
+            }, `There was a problem loading formatter: ${formatterPath}\nError: Cannot find module '${formatterPath}'`);
         });
 
-        it("should return null when a built-in formatter doesn't exist", function() {
-            var engine = new CLIEngine();
+        it("should return null when a built-in formatter doesn't exist", () => {
+            const engine = new CLIEngine();
 
-            assert.throws(function() {
+            assert.throws(() => {
                 engine.getFormatter("special");
             }, "There was a problem loading formatter: ./formatters/special\nError: Cannot find module './formatters/special'");
         });
 
-        it("should throw if the required formatter exists but has an error", function() {
-            var engine = new CLIEngine(),
+        it("should throw if the required formatter exists but has an error", () => {
+            const engine = new CLIEngine(),
                 formatterPath = getFixturePath("formatters", "broken.js");
 
-            assert.throws(function() {
+            assert.throws(() => {
                 engine.getFormatter(formatterPath);
-            }, "There was a problem loading formatter: " + formatterPath + "\nError: Cannot find module 'this-module-does-not-exist'");
+            }, `There was a problem loading formatter: ${formatterPath}\nError: Cannot find module 'this-module-does-not-exist'`);
         });
 
-        it("should return null when a non-string formatter name is passed", function() {
-            var engine = new CLIEngine(),
+        it("should return null when a non-string formatter name is passed", () => {
+            const engine = new CLIEngine(),
                 formatter = engine.getFormatter(5);
 
             assert.isNull(formatter);
         });
 
-        it("should return a function when called as a static function on CLIEngine", function() {
-            var formatter = CLIEngine.getFormatter();
+        it("should return a function when called as a static function on CLIEngine", () => {
+            const formatter = CLIEngine.getFormatter();
 
             assert.isFunction(formatter);
         });
 
-        it("should return a function when called as a static function on CLIEngine and a custom formatter is requested", function() {
-            var formatter = CLIEngine.getFormatter(getFixturePath("formatters", "simple.js"));
+        it("should return a function when called as a static function on CLIEngine and a custom formatter is requested", () => {
+            const formatter = CLIEngine.getFormatter(getFixturePath("formatters", "simple.js"));
 
             assert.isFunction(formatter);
         });
 
     });
 
-    describe("getErrorResults()", function() {
-        it("should report 4 error messages when looking for errors only", function() {
+    describe("getErrorResults()", () => {
+        it("should report 5 error messages when looking for errors only", () => {
 
             process.chdir(originalDir);
-            var engine = new CLIEngine();
+            const engine = new CLIEngine();
 
-            var report = engine.executeOnText("var foo = 'bar';");
-            var errorResults = CLIEngine.getErrorResults(report.results);
+            const report = engine.executeOnText("var foo = 'bar';");
+            const errorResults = CLIEngine.getErrorResults(report.results);
 
-            assert.lengthOf(errorResults[0].messages, 4);
-            assert.equal(errorResults[0].errorCount, 4);
+            assert.lengthOf(errorResults[0].messages, 5);
+            assert.equal(errorResults[0].errorCount, 5);
             assert.equal(errorResults[0].messages[0].ruleId, "strict");
             assert.equal(errorResults[0].messages[0].severity, 2);
-            assert.equal(errorResults[0].messages[1].ruleId, "eol-last");
+            assert.equal(errorResults[0].messages[1].ruleId, "no-var");
             assert.equal(errorResults[0].messages[1].severity, 2);
             assert.equal(errorResults[0].messages[2].ruleId, "no-unused-vars");
             assert.equal(errorResults[0].messages[2].severity, 2);
             assert.equal(errorResults[0].messages[3].ruleId, "quotes");
             assert.equal(errorResults[0].messages[3].severity, 2);
+            assert.equal(errorResults[0].messages[4].ruleId, "eol-last");
+            assert.equal(errorResults[0].messages[4].severity, 2);
         });
 
-        it("should report a warningCount of 0 when looking for errors only", function() {
+        it("should report a warningCount of 0 when looking for errors only", () => {
 
             process.chdir(originalDir);
-            var engine = new CLIEngine();
+            const engine = new CLIEngine();
 
-            var report = engine.executeOnText("var foo = 'bar';");
-            var errorResults = CLIEngine.getErrorResults(report.results);
+            const report = engine.executeOnText("var foo = 'bar';");
+            const errorResults = CLIEngine.getErrorResults(report.results);
 
             assert.equal(errorResults[0].warningCount, 0);
         });
 
-        it("should return 0 error or warning messages even when the file has warnings", function() {
-            var engine = new CLIEngine({
+        it("should return 0 error or warning messages even when the file has warnings", () => {
+            const engine = new CLIEngine({
                 ignorePath: path.join(fixtureDir, ".eslintignore"),
                 cwd: path.join(fixtureDir, "..")
             });
 
-            var report = engine.executeOnText("var bar = foo;", "fixtures/passing.js");
-            var errorReport = CLIEngine.getErrorResults(report.results);
+            const report = engine.executeOnText("var bar = foo;", "fixtures/passing.js", true);
+            const errorReport = CLIEngine.getErrorResults(report.results);
 
             assert.lengthOf(errorReport, 0);
             assert.lengthOf(report.results, 1);
@@ -2187,18 +2552,51 @@ describe("CLIEngine", function() {
             assert.equal(report.results[0].errorCount, 0);
             assert.equal(report.results[0].warningCount, 1);
         });
+
+        it("should return source code of file in the `source` property", () => {
+            process.chdir(originalDir);
+            const engine = new CLIEngine({
+                useEslintrc: false,
+                rules: { quotes: [2, "double"] }
+            });
+
+
+            const report = engine.executeOnText("var foo = 'bar';");
+            const errorResults = CLIEngine.getErrorResults(report.results);
+
+            assert.lengthOf(errorResults[0].messages, 1);
+            assert.equal(errorResults[0].source, "var foo = 'bar';");
+        });
+
+        it("should contain `output` property after fixes", () => {
+            process.chdir(originalDir);
+            const engine = new CLIEngine({
+                useEslintrc: false,
+                fix: true,
+                rules: {
+                    semi: 2,
+                    "no-console": 2
+                }
+            });
+
+            const report = engine.executeOnText("console.log('foo')");
+            const errorResults = CLIEngine.getErrorResults(report.results);
+
+            assert.lengthOf(errorResults[0].messages, 1);
+            assert.equal(errorResults[0].output, "console.log('foo');");
+        });
     });
 
-    describe("outputFixes()", function() {
+    describe("outputFixes()", () => {
 
-        var sandbox = sinon.sandbox.create();
+        const sandbox = sinon.sandbox.create();
 
-        afterEach(function() {
+        afterEach(() => {
             sandbox.verifyAndRestore();
         });
 
-        it("should call fs.writeFileSync() for each result with output", function() {
-            var fakeFS = leche.fake(fs),
+        it("should call fs.writeFileSync() for each result with output", () => {
+            const fakeFS = leche.fake(fs),
                 localCLIEngine = proxyquire("../../lib/cli-engine", {
                     fs: fakeFS
                 }),
@@ -2216,7 +2614,7 @@ describe("CLIEngine", function() {
                 };
 
             fakeFS.writeFileSync = function() {};
-            var spy = sandbox.spy(fakeFS, "writeFileSync");
+            const spy = sandbox.spy(fakeFS, "writeFileSync");
 
             localCLIEngine.outputFixes(report);
 
@@ -2226,8 +2624,8 @@ describe("CLIEngine", function() {
 
         });
 
-        it("should call fs.writeFileSync() for each result with output and not at all for a result without output", function() {
-            var fakeFS = leche.fake(fs),
+        it("should call fs.writeFileSync() for each result with output and not at all for a result without output", () => {
+            const fakeFS = leche.fake(fs),
                 localCLIEngine = proxyquire("../../lib/cli-engine", {
                     fs: fakeFS
                 }),
@@ -2248,7 +2646,7 @@ describe("CLIEngine", function() {
                 };
 
             fakeFS.writeFileSync = function() {};
-            var spy = sandbox.spy(fakeFS, "writeFileSync");
+            const spy = sandbox.spy(fakeFS, "writeFileSync");
 
             localCLIEngine.outputFixes(report);
 
@@ -2260,18 +2658,18 @@ describe("CLIEngine", function() {
 
     });
 
-    describe("resolveFileGlobPatterns", function() {
+    describe("resolveFileGlobPatterns", () => {
 
         leche.withData([
             [".", "**/*.js"],
             ["./", "**/*.js"],
             ["../", "../**/*.js"]
-        ], function(input, expected) {
+        ], (input, expected) => {
 
-            it("should correctly resolve " + input + " to " + expected, function() {
-                var engine = new CLIEngine();
+            it(`should correctly resolve ${input} to ${expected}`, () => {
+                const engine = new CLIEngine();
 
-                var result = engine.resolveFileGlobPatterns([input]);
+                const result = engine.resolveFileGlobPatterns([input]);
 
                 assert.equal(result[0], expected);
 
@@ -2280,13 +2678,13 @@ describe("CLIEngine", function() {
 
     });
 
-    describe("when evaluating code with comments to change config when allowInlineConfig is disabled", function() {
+    describe("when evaluating code with comments to change config when allowInlineConfig is disabled", () => {
 
-        it("should report a violation for disabling rules", function() {
-            var code = [
+        it("should report a violation for disabling rules", () => {
+            const code = [
                 "alert('test'); // eslint-disable-line no-alert"
             ].join("\n");
-            var config = {
+            const config = {
                 envs: ["browser"],
                 ignore: true,
                 allowInlineConfig: false,
@@ -2299,20 +2697,20 @@ describe("CLIEngine", function() {
                 }
             };
 
-            var eslintCLI = new CLIEngine(config);
+            const eslintCLI = new CLIEngine(config);
 
-            var report = eslintCLI.executeOnText(code);
-            var messages = report.results[0].messages;
+            const report = eslintCLI.executeOnText(code);
+            const messages = report.results[0].messages;
 
             assert.equal(messages.length, 1);
             assert.equal(messages[0].ruleId, "no-alert");
         });
 
-        it("should not report a violation by default", function() {
-            var code = [
+        it("should not report a violation by default", () => {
+            const code = [
                 "alert('test'); // eslint-disable-line no-alert"
             ].join("\n");
-            var config = {
+            const config = {
                 envs: ["browser"],
                 ignore: true,
 
@@ -2326,14 +2724,24 @@ describe("CLIEngine", function() {
                 }
             };
 
-            var eslintCLI = new CLIEngine(config);
+            const eslintCLI = new CLIEngine(config);
 
-            var report = eslintCLI.executeOnText(code);
-            var messages = report.results[0].messages;
+            const report = eslintCLI.executeOnText(code);
+            const messages = report.results[0].messages;
 
             assert.equal(messages.length, 0);
         });
 
+    });
+
+    describe("when retreiving version number", () => {
+        it("should return current version number", () => {
+            const eslintCLI = require("../../lib/cli-engine");
+            const version = eslintCLI.version;
+
+            assert.isString(version);
+            assert.isTrue(parseInt(version[0], 10) >= 3);
+        });
     });
 
 });

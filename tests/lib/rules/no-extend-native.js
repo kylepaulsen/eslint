@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-extend-native"),
+const rule = require("../../../lib/rules/no-extend-native"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-extend-native", rule, {
     valid: [
@@ -35,7 +35,7 @@ ruleTester.run("no-extend-native", rule, {
         "parseFloat.prototype.x = 1",
         {
             code: "Object.prototype.g = 0",
-            options: [{exceptions: ["Object"]}]
+            options: [{ exceptions: ["Object"] }]
         },
 
         // https://github.com/eslint/eslint/issues/4438
@@ -81,7 +81,7 @@ ruleTester.run("no-extend-native", rule, {
     },
     {
         code: "Number['prototype']['p'] = 0",
-        options: [{exceptions: ["Object"]}],
+        options: [{ exceptions: ["Object"] }],
         errors: [{
             message: "Number prototype is read only, properties should not be added.",
             type: "AssignmentExpression"

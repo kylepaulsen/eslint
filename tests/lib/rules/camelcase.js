@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/camelcase"),
+const rule = require("../../../lib/rules/camelcase"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("camelcase", rule, {
     valid: [
@@ -26,6 +26,8 @@ ruleTester.run("camelcase", rule, {
         "myPrivateVariable_ = \"Patrick\"",
         "function doSomething(){}",
         "do_something()",
+        "new do_something",
+        "new do_something()",
         "foo.do_something()",
         "var foo = bar.baz_boom;",
         "var foo = bar.baz_boom.something;",
@@ -39,23 +41,23 @@ ruleTester.run("camelcase", rule, {
         "if (foo.bar_baz === boom.bam_pow) { [foo.baz_boom] }",
         {
             code: "var o = {key: 1}",
-            options: [{properties: "always"}]
+            options: [{ properties: "always" }]
         },
         {
             code: "var o = {bar_baz: 1}",
-            options: [{properties: "never"}]
+            options: [{ properties: "never" }]
         },
         {
             code: "obj.a_b = 2;",
-            options: [{properties: "never"}]
+            options: [{ properties: "never" }]
         },
         {
             code: "var obj = {\n a_a: 1 \n};\n obj.a_b = 2;",
-            options: [{properties: "never"}]
+            options: [{ properties: "never" }]
         },
         {
             code: "obj.foo_bar = function(){};",
-            options: [{properties: "never"}]
+            options: [{ properties: "never" }]
         },
         {
             code: "var { category_id: category } = query;",
@@ -64,7 +66,19 @@ ruleTester.run("camelcase", rule, {
         {
             code: "var { category_id: category } = query;",
             parserOptions: { ecmaVersion: 6 },
-            options: [{properties: "never"}]
+            options: [{ properties: "never" }]
+        },
+        {
+            code: "import { camelCased } from \"external module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" }
+        },
+        {
+            code: "import { no_camelcased as camelCased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" }
+        },
+        {
+            code: "import { no_camelcased as camelCased, anoterCamelCased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" }
         }
     ],
     invalid: [
@@ -160,7 +174,7 @@ ruleTester.run("camelcase", rule, {
         },
         {
             code: "var o = {bar_baz: 1}",
-            options: [{properties: "always"}],
+            options: [{ properties: "always" }],
             errors: [
                 {
                     message: "Identifier 'bar_baz' is not in camel case.",
@@ -170,7 +184,7 @@ ruleTester.run("camelcase", rule, {
         },
         {
             code: "obj.a_b = 2;",
-            options: [{properties: "always"}],
+            options: [{ properties: "always" }],
             errors: [
                 {
                     message: "Identifier 'a_b' is not in camel case.",
@@ -180,7 +194,7 @@ ruleTester.run("camelcase", rule, {
         },
         {
             code: "obj.a_b = 2;",
-            options: [{properties: "always"}],
+            options: [{ properties: "always" }],
             errors: [
                 {
                     message: "Identifier 'a_b' is not in camel case.",
@@ -204,6 +218,96 @@ ruleTester.run("camelcase", rule, {
             errors: [
                 {
                     message: "Identifier 'category_id' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import no_camelcased from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import * as no_camelcased from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import { no_camelcased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import { no_camelcased as no_camel_cased } from \"external module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camel_cased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import { camelCased as no_camel_cased } from \"external module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camel_cased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import { camelCased, no_camelcased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import { no_camelcased as camelCased, another_no_camelcased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'another_no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import camelCased, { no_camelcased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
+                    type: "Identifier"
+                }
+            ]
+        },
+        {
+            code: "import no_camelcased, { another_no_camelcased as camelCased } from \"external-module\";",
+            parserOptions: { ecmaVersion: 6, sourceType: "module" },
+            errors: [
+                {
+                    message: "Identifier 'no_camelcased' is not in camel case.",
                     type: "Identifier"
                 }
             ]

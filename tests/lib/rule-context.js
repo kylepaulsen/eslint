@@ -9,7 +9,8 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var sinon = require("sinon"),
+const sinon = require("sinon"),
+    assert = require("chai").assert,
     leche = require("leche"),
     realESLint = require("../../lib/eslint"),
     RuleContext = require("../../lib/rule-context");
@@ -18,25 +19,25 @@ var sinon = require("sinon"),
 // Tests
 //------------------------------------------------------------------------------
 
-describe("RuleContext", function() {
-    var sandbox = sinon.sandbox.create();
+describe("RuleContext", () => {
+    const sandbox = sinon.sandbox.create();
 
-    describe("report()", function() {
-        var ruleContext, eslint;
+    describe("report()", () => {
+        let ruleContext, eslint;
 
-        beforeEach(function() {
+        beforeEach(() => {
             eslint = leche.fake(realESLint);
             ruleContext = new RuleContext("fake-rule", eslint, 2, {}, {}, {}, "espree");
         });
 
-        describe("old-style call with location", function() {
-            it("should call eslint.report() with rule ID and severity prepended", function() {
-                var node = {},
+        describe("old-style call with location", () => {
+            it("should call eslint.report() with rule ID and severity prepended", () => {
+                const node = {},
                     location = {},
                     message = "Message",
                     messageOpts = {};
 
-                var mockESLint = sandbox.mock(eslint);
+                const mockESLint = sandbox.mock(eslint);
 
                 mockESLint.expects("report")
                     .once()
@@ -48,13 +49,13 @@ describe("RuleContext", function() {
             });
         });
 
-        describe("old-style call without location", function() {
-            it("should call eslint.report() with rule ID and severity prepended", function() {
-                var node = {},
+        describe("old-style call without location", () => {
+            it("should call eslint.report() with rule ID and severity prepended", () => {
+                const node = {},
                     message = "Message",
                     messageOpts = {};
 
-                var mockESLint = sandbox.mock(eslint);
+                const mockESLint = sandbox.mock(eslint);
 
                 mockESLint.expects("report")
                     .once()
@@ -66,33 +67,64 @@ describe("RuleContext", function() {
             });
         });
 
-        describe("new-style call with all options", function() {
-            it("should call eslint.report() with rule ID and severity prepended and all new-style options", function() {
-                var node = {},
+        describe("new-style call with all options", () => {
+            it("should call eslint.report() with rule ID and severity prepended and all new-style options", () => {
+                const node = {},
                     location = {},
                     message = "Message",
                     messageOpts = {},
                     fixerObj = {},
                     fix = sandbox.mock().returns(fixerObj).once();
 
-                var mockESLint = sandbox.mock(eslint);
+                const mockESLint = sandbox.mock(eslint);
 
                 mockESLint.expects("report")
                     .once()
                     .withArgs("fake-rule", 2, node, location, message, messageOpts, fixerObj);
 
                 ruleContext.report({
-                    node: node,
+                    node,
                     loc: location,
-                    message: message,
+                    message,
                     data: messageOpts,
-                    fix: fix
+                    fix
                 });
 
                 fix.verify();
                 mockESLint.verify();
             });
         });
+    });
+
+    describe("parserServices", () => {
+
+        it("should pass through parserServices properties to context", () => {
+            const services = {
+                test: {}
+            };
+            const ruleContext = new RuleContext("fake-rule", {}, 2, {}, {}, {}, "espree", {}, services);
+
+            assert.equal(ruleContext.parserServices.test, services.test);
+        });
+
+        it("should copy parserServices properties to a new object", () => {
+            const services = {
+                test: {}
+            };
+            const ruleContext = new RuleContext("fake-rule", {}, 2, {}, {}, {}, "espree", {}, services);
+
+            assert.notEqual(ruleContext.parserServices, services);
+        });
+
+        it("should make context.parserServices a frozen object", () => {
+            const services = {
+                test: {}
+            };
+            const ruleContext = new RuleContext("fake-rule", {}, 2, {}, {}, {}, "espree", {}, services);
+
+            assert.ok(Object.isFrozen(ruleContext.parserServices));
+        });
+
     });
 
 });

@@ -5,14 +5,13 @@ of these rules is to make the comments easier to read and improve readability of
 
 ## Rule Details
 
-This rule requires empty lines before and/or after comments. It can be enabled separately for both block (`/*`) and line (`//`) comments. This rule does not apply to comments that appear on the same line as code and does not require empty lines at the beginning or end of a file. Empty lines are also not required at the beginning or end of a file.
+This rule requires empty lines before and/or after comments. It can be enabled separately for both block (`/*`) and line (`//`) comments. This rule does not apply to comments that appear on the same line as code and does not require empty lines at the beginning or end of a file.
 
 ## Options
 
 This rule has an object option:
 
 * `"beforeBlockComment": true` (default) requires an empty line before block comments
-* `"beforeBlockComment": false` disallows an empty line before block comments
 * `"afterBlockComment": true` requires an empty line after block comments
 * `"beforeLineComment": true` requires an empty line before line comments
 * `"afterLineComment": true` requires an empty line after line comments

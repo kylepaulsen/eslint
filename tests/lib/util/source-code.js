@@ -8,7 +8,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var fs = require("fs"),
+const fs = require("fs"),
     path = require("path"),
     assert = require("chai").assert,
     espree = require("espree"),
@@ -21,7 +21,7 @@ var fs = require("fs"),
 // Helpers
 //------------------------------------------------------------------------------
 
-var DEFAULT_CONFIG = {
+const DEFAULT_CONFIG = {
     ecmaVersion: 6,
     comment: true,
     tokens: true,
@@ -29,29 +29,29 @@ var DEFAULT_CONFIG = {
     loc: true
 };
 
-var AST = espree.parse("let foo = bar;", DEFAULT_CONFIG),
+const AST = espree.parse("let foo = bar;", DEFAULT_CONFIG),
     TEST_CODE = "var answer = 6 * 7;";
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-describe("SourceCode", function() {
+describe("SourceCode", () => {
 
-    describe("new SourceCode()", function() {
+    describe("new SourceCode()", () => {
 
-        it("should create a new instance when called with valid data", function() {
-            var ast = { comments: [], tokens: [], loc: {}, range: [] };
-            var sourceCode = new SourceCode("foo;", ast);
+        it("should create a new instance when called with valid data", () => {
+            const ast = { comments: [], tokens: [], loc: {}, range: [] };
+            const sourceCode = new SourceCode("foo;", ast);
 
             assert.isObject(sourceCode);
             assert.equal(sourceCode.text, "foo;");
             assert.equal(sourceCode.ast, ast);
         });
 
-        it("should split text into lines when called with valid data", function() {
-            var ast = { comments: [], tokens: [], loc: {}, range: [] };
-            var sourceCode = new SourceCode("foo;\nbar;", ast);
+        it("should split text into lines when called with valid data", () => {
+            const ast = { comments: [], tokens: [], loc: {}, range: [] };
+            const sourceCode = new SourceCode("foo;\nbar;", ast);
 
             assert.isObject(sourceCode);
             assert.equal(sourceCode.lines.length, 2);
@@ -61,118 +61,118 @@ describe("SourceCode", function() {
 
         /* eslint-disable no-new */
 
-        it("should throw an error when called with an AST that's missing tokens", function() {
+        it("should throw an error when called with an AST that's missing tokens", () => {
 
-            assert.throws(function() {
+            assert.throws(() => {
                 new SourceCode("foo;", { comments: [], loc: {}, range: [] });
             }, /missing the tokens array/);
 
         });
 
-        it("should throw an error when called with an AST that's missing comments", function() {
+        it("should throw an error when called with an AST that's missing comments", () => {
 
-            assert.throws(function() {
+            assert.throws(() => {
                 new SourceCode("foo;", { tokens: [], loc: {}, range: [] });
             }, /missing the comments array/);
 
         });
 
-        it("should throw an error when called with an AST that's missing comments", function() {
+        it("should throw an error when called with an AST that's missing location", () => {
 
-            assert.throws(function() {
+            assert.throws(() => {
                 new SourceCode("foo;", { comments: [], tokens: [], range: [] });
             }, /missing location information/);
 
         });
 
-        it("should throw an error when called with an AST that's missing comments", function() {
+        it("should throw an error when called with an AST that's missing range", () => {
 
-            assert.throws(function() {
+            assert.throws(() => {
                 new SourceCode("foo;", { comments: [], tokens: [], loc: {} });
             }, /missing range information/);
         });
 
-        it("should store all tokens and comments sorted by range", function() {
-            var comments = [
+        it("should store all tokens and comments sorted by range", () => {
+            const comments = [
                 { range: [0, 2] },
                 { range: [10, 12] }
             ];
-            var tokens = [
+            const tokens = [
                 { range: [3, 8] },
                 { range: [8, 10] },
                 { range: [12, 20] }
             ];
-            var sourceCode = new SourceCode("", { comments: comments, tokens: tokens, loc: {}, range: [] });
+            const sourceCode = new SourceCode("", { comments, tokens, loc: {}, range: [] });
 
-            var actual = sourceCode.tokensAndComments;
-            var expected = [comments[0], tokens[0], tokens[1], comments[1], tokens[2]];
+            const actual = sourceCode.tokensAndComments;
+            const expected = [comments[0], tokens[0], tokens[1], comments[1], tokens[2]];
 
             assert.deepEqual(actual, expected);
         });
 
-        describe("if a text has BOM,", function() {
-            var sourceCode;
+        describe("if a text has BOM,", () => {
+            let sourceCode;
 
-            beforeEach(function() {
-                var ast = { comments: [], tokens: [], loc: {}, range: [] };
+            beforeEach(() => {
+                const ast = { comments: [], tokens: [], loc: {}, range: [] };
 
                 sourceCode = new SourceCode("\uFEFFconsole.log('hello');", ast);
             });
 
-            it("should has true at `hasBOM` property.", function() {
+            it("should has true at `hasBOM` property.", () => {
                 assert.equal(sourceCode.hasBOM, true);
             });
 
-            it("should not has BOM in `text` property.", function() {
+            it("should not has BOM in `text` property.", () => {
                 assert.equal(sourceCode.text, "console.log('hello');");
             });
         });
 
-        describe("if a text doesn't have BOM,", function() {
-            var sourceCode;
+        describe("if a text doesn't have BOM,", () => {
+            let sourceCode;
 
-            beforeEach(function() {
-                var ast = { comments: [], tokens: [], loc: {}, range: [] };
+            beforeEach(() => {
+                const ast = { comments: [], tokens: [], loc: {}, range: [] };
 
                 sourceCode = new SourceCode("console.log('hello');", ast);
             });
 
-            it("should has false at `hasBOM` property.", function() {
+            it("should has false at `hasBOM` property.", () => {
                 assert.equal(sourceCode.hasBOM, false);
             });
 
-            it("should not has BOM in `text` property.", function() {
+            it("should not has BOM in `text` property.", () => {
                 assert.equal(sourceCode.text, "console.log('hello');");
             });
         });
 
-        describe("when it read a UTF-8 file (has BOM), SourceCode", function() {
-            var UTF8_FILE = path.resolve(__dirname, "../../fixtures/utf8-bom.js");
-            var text = fs.readFileSync(
+        describe("when it read a UTF-8 file (has BOM), SourceCode", () => {
+            const UTF8_FILE = path.resolve(__dirname, "../../fixtures/utf8-bom.js");
+            const text = fs.readFileSync(
                     UTF8_FILE,
                     "utf8"
                 ).replace(/\r\n/g, "\n"); // <-- For autocrlf of "git for Windows"
-            var sourceCode;
+            let sourceCode;
 
-            beforeEach(function() {
-                var ast = { comments: [], tokens: [], loc: {}, range: [] };
+            beforeEach(() => {
+                const ast = { comments: [], tokens: [], loc: {}, range: [] };
 
                 sourceCode = new SourceCode(text, ast);
             });
 
-            it("to be clear, check the file has UTF-8 BOM.", function() {
-                var buffer = fs.readFileSync(UTF8_FILE);
+            it("to be clear, check the file has UTF-8 BOM.", () => {
+                const buffer = fs.readFileSync(UTF8_FILE);
 
                 assert.equal(buffer[0], 0xEF);
                 assert.equal(buffer[1], 0xBB);
                 assert.equal(buffer[2], 0xBF);
             });
 
-            it("should has true at `hasBOM` property.", function() {
+            it("should has true at `hasBOM` property.", () => {
                 assert.equal(sourceCode.hasBOM, true);
             });
 
-            it("should not has BOM in `text` property.", function() {
+            it("should not has BOM in `text` property.", () => {
                 assert.equal(
                     sourceCode.text,
                     "\"use strict\";\n\nconsole.log(\"This file has [0xEF, 0xBB, 0xBF] as BOM.\");\n");
@@ -181,22 +181,22 @@ describe("SourceCode", function() {
     });
 
 
-    describe("getJSDocComment()", function() {
+    describe("getJSDocComment()", () => {
 
-        var sandbox = sinon.sandbox.create(),
+        const sandbox = sinon.sandbox.create(),
             filename = "foo.js";
 
-        beforeEach(function() {
+        beforeEach(() => {
             eslint.reset();
         });
 
-        afterEach(function() {
+        afterEach(() => {
             sandbox.verifyAndRestore();
         });
 
-        it("should not take a JSDoc comment from a FunctionDeclaration parent node when the node is a FunctionExpression", function() {
+        it("should not take a JSDoc comment from a FunctionDeclaration parent node when the node is a FunctionExpression", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "function Foo(){var t = function(){}}"
             ].join("\n");
@@ -208,23 +208,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc, null);
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
-        it("should not take a JSDoc comment from a VariableDeclaration parent node when the node is a FunctionExpression inside a NewExpression", function() {
+        it("should not take a JSDoc comment from a VariableDeclaration parent node when the node is a FunctionExpression inside a NewExpression", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "var x = new Foo(function(){});"
             ].join("\n");
@@ -236,23 +236,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc, null);
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
-        it("should not take a JSDoc comment from a FunctionExpression parent node when the node is a FunctionExpression", function() {
+        it("should not take a JSDoc comment from a FunctionExpression parent node when the node is a FunctionExpression", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "var f = function(){var t = function(arg){}}"
             ].join("\n");
@@ -265,23 +265,23 @@ describe("SourceCode", function() {
              */
             function assertJSDoc(node) {
                 if (node.params.length === 1) {
-                    var sourceCode = eslint.getSourceCode();
-                    var jsdoc = sourceCode.getJSDocComment(node);
+                    const sourceCode = eslint.getSourceCode();
+                    const jsdoc = sourceCode.getJSDocComment(node);
 
                     assert.equal(jsdoc, null);
                 }
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledTwice, "Event handler should be called twice.");
 
         });
 
-        it("should get JSDoc comment for FunctionExpression in a CallExpression", function() {
-            var code = [
+        it("should get JSDoc comment for FunctionExpression in a CallExpression", () => {
+            const code = [
                 "call(",
                 "  /** Documentation. */",
                 "  function(argName) {",
@@ -297,23 +297,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Documentation. ");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, {rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionDeclaration", function() {
+        it("should get JSDoc comment for node when the node is a FunctionDeclaration", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "function Foo(){}"
             ].join("\n");
@@ -325,24 +325,24 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionDeclaration but its parent is an export", function() {
+        it("should get JSDoc comment for node when the node is a FunctionDeclaration but its parent is an export", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "export function Foo(){}"
             ].join("\n");
@@ -354,25 +354,25 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { parserOptions: { sourceType: "module" }, rules: {}}, filename, true);
+            eslint.verify(code, { parserOptions: { sourceType: "module" }, rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
 
-        it("should get JSDoc comment for node when the node is a FunctionDeclaration but not the first statement", function() {
+        it("should get JSDoc comment for node when the node is a FunctionDeclaration but not the first statement", () => {
 
-            var code = [
+            const code = [
                 "'use strict';",
                 "/** Desc*/",
                 "function Foo(){}"
@@ -385,25 +385,25 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
 
-        it("should not get JSDoc comment for node when the node is a FunctionDeclaration inside of an IIFE without a JSDoc comment", function() {
+        it("should not get JSDoc comment for node when the node is a FunctionDeclaration inside of an IIFE without a JSDoc comment", () => {
 
-            var code = [
+            const code = [
                 "/** Desc*/",
                 "(function(){",
                 "function Foo(){}",
@@ -417,23 +417,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.isNull(jsdoc);
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionDeclaration and there are multiple comments", function() {
+        it("should get JSDoc comment for node when the node is a FunctionDeclaration and there are multiple comments", () => {
 
-            var code = [
+            const code = [
                 "/* Code is good */",
                 "/** Desc*/",
                 "function Foo(){}"
@@ -446,24 +446,24 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
 
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionDeclaration inside of an IIFE", function() {
+        it("should get JSDoc comment for node when the node is a FunctionDeclaration inside of an IIFE", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "(function() {",
                 "/** Desc*/",
@@ -478,23 +478,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionExpression inside of an object literal", function() {
+        it("should get JSDoc comment for node when the node is a FunctionExpression inside of an object literal", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "var o = {",
                 "/** Desc*/",
@@ -509,23 +509,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a ArrowFunctionExpression inside of an object literal", function() {
+        it("should get JSDoc comment for node when the node is a ArrowFunctionExpression inside of an object literal", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "var o = {",
                 "/** Desc*/",
@@ -540,23 +540,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("ArrowFunctionExpression", spy);
-            eslint.verify(code, { parserOptions: { ecmaVersion: 6 }, rules: {}}, filename, true);
+            eslint.verify(code, { parserOptions: { ecmaVersion: 6 }, rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionExpression in an assignment", function() {
+        it("should get JSDoc comment for node when the node is a FunctionExpression in an assignment", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "/** Desc*/",
                 "Foo.bar = function(){}"
@@ -569,23 +569,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Desc");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE", function() {
+        it("should get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "(function iife() {",
                 "/** Desc*/",
@@ -601,24 +601,24 @@ describe("SourceCode", function() {
              */
             function assertJSDoc(node) {
                 if (!node.id) {
-                    var sourceCode = eslint.getSourceCode();
-                    var jsdoc = sourceCode.getJSDocComment(node);
+                    const sourceCode = eslint.getSourceCode();
+                    const jsdoc = sourceCode.getJSDocComment(node);
 
                     assert.equal(jsdoc.type, "Block");
                     assert.equal(jsdoc.value, "* Desc");
                 }
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledTwice, "Event handler should be called.");
         });
 
-        it("should not get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE without a JSDoc comment", function() {
+        it("should not get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE without a JSDoc comment", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "(function iife() {",
                 "//* whatever",
@@ -634,23 +634,23 @@ describe("SourceCode", function() {
              */
             function assertJSDoc(node) {
                 if (!node.id) {
-                    var sourceCode = eslint.getSourceCode();
-                    var jsdoc = sourceCode.getJSDocComment(node);
+                    const sourceCode = eslint.getSourceCode();
+                    const jsdoc = sourceCode.getJSDocComment(node);
 
                     assert.isNull(jsdoc);
                 }
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledTwice, "Event handler should be called.");
         });
 
-        it("should not get JSDoc comment for node when the node is a FunctionExpression inside of a CallExpression", function() {
+        it("should not get JSDoc comment for node when the node is a FunctionExpression inside of a CallExpression", () => {
 
-            var code = [
+            const code = [
                 "/** Code is good */",
                 "module.exports = (function() {",
                 "}());"
@@ -664,23 +664,23 @@ describe("SourceCode", function() {
              */
             function assertJSDoc(node) {
                 if (!node.id) {
-                    var sourceCode = eslint.getSourceCode();
-                    var jsdoc = sourceCode.getJSDocComment(node);
+                    const sourceCode = eslint.getSourceCode();
+                    const jsdoc = sourceCode.getJSDocComment(node);
 
                     assert.isNull(jsdoc);
                 }
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should not get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE without a JSDoc comment", function() {
+        it("should not get JSDoc comment for node when the node is a FunctionExpression in an assignment inside an IIFE without a JSDoc comment", () => {
 
-            var code = [
+            const code = [
                 "/**",
                 " * Merges two objects together.",
                 " * @param {Object} target of the cloning operation",
@@ -702,23 +702,23 @@ describe("SourceCode", function() {
              */
             function assertJSDoc(node) {
                 if (node.id) {
-                    var sourceCode = eslint.getSourceCode();
-                    var jsdoc = sourceCode.getJSDocComment(node);
+                    const sourceCode = eslint.getSourceCode();
+                    const jsdoc = sourceCode.getJSDocComment(node);
 
                     assert.isNull(jsdoc);
                 }
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}}, filename, true);
+            eslint.verify(code, { rules: {} }, filename, true);
             assert.isTrue(spy.calledTwice, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a ClassExpression", function() {
+        it("should get JSDoc comment for node when the node is a ClassExpression", () => {
 
-            var code = [
+            const code = [
                 "/** Merges two objects together.*/",
                 "var A = class {",
                 "};"
@@ -731,23 +731,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Merges two objects together.");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("ClassExpression", spy);
-            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 }}, filename, true);
+            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 } }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for node when the node is a ClassDeclaration", function() {
+        it("should get JSDoc comment for node when the node is a ClassDeclaration", () => {
 
-            var code = [
+            const code = [
                 "/** Merges two objects together.*/",
                 "class A {",
                 "};"
@@ -760,23 +760,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Merges two objects together.");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("ClassDeclaration", spy);
-            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 }}, filename, true);
+            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 } }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should not get JSDoc comment for class method even if the class has jsdoc present", function() {
+        it("should not get JSDoc comment for class method even if the class has jsdoc present", () => {
 
-            var code = [
+            const code = [
                 "/** Merges two objects together.*/",
                 "var A = class {",
                 "    constructor(xs) {}",
@@ -790,22 +790,22 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.isNull(jsdoc);
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 }}, filename, true);
+            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 } }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should get JSDoc comment for function expression even if function has blank lines on top", function() {
+        it("should get JSDoc comment for function expression even if function has blank lines on top", () => {
 
-            var code = [
+            const code = [
                 "/** Merges two objects together.*/",
                 "var A = ",
                 " ",
@@ -822,23 +822,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.equal(jsdoc.type, "Block");
                 assert.equal(jsdoc.value, "* Merges two objects together.");
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionExpression", spy);
-            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 }}, filename, true);
+            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 } }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
-        it("should not get JSDoc comment for function declaration when the function has blank lines on top", function() {
+        it("should not get JSDoc comment for function declaration when the function has blank lines on top", () => {
 
-            var code = [
+            const code = [
                 "/** Merges two objects together.*/",
                 " ",
                 " ",
@@ -854,23 +854,23 @@ describe("SourceCode", function() {
              * @private
              */
             function assertJSDoc(node) {
-                var sourceCode = eslint.getSourceCode();
-                var jsdoc = sourceCode.getJSDocComment(node);
+                const sourceCode = eslint.getSourceCode();
+                const jsdoc = sourceCode.getJSDocComment(node);
 
                 assert.isNull(jsdoc);
             }
 
-            var spy = sandbox.spy(assertJSDoc);
+            const spy = sandbox.spy(assertJSDoc);
 
             eslint.on("FunctionDeclaration", spy);
-            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 }}, filename, true);
+            eslint.verify(code, { rules: {}, parserOptions: { ecmaVersion: 6 } }, filename, true);
             assert.isTrue(spy.calledOnce, "Event handler should be called.");
         });
 
     });
 
-    describe("getComments()", function() {
-        var config = { rules: {} };
+    describe("getComments()", () => {
+        const config = { rules: {} };
 
         /**
          * Check comment count
@@ -881,16 +881,16 @@ describe("SourceCode", function() {
          */
         function assertCommentCount(leading, trailing) {
             return function(node) {
-                var sourceCode = eslint.getSourceCode();
-                var comments = sourceCode.getComments(node);
+                const sourceCode = eslint.getSourceCode();
+                const comments = sourceCode.getComments(node);
 
                 assert.equal(comments.leading.length, leading);
                 assert.equal(comments.trailing.length, trailing);
             };
         }
 
-        it("should attach them to all nodes", function() {
-            var code = [
+        it("should attach them to all nodes", () => {
+            const code = [
                 "// my line comment",
                 "var a = 42;",
                 "/* my block comment */"
@@ -906,8 +906,8 @@ describe("SourceCode", function() {
             eslint.verify(code, config, "", true);
         });
 
-        it("should not attach leading comments from previous node", function() {
-            var code = [
+        it("should not attach leading comments from previous node", () => {
+            const code = [
                 "function a() {",
                 "    var b = {",
                 "        // comment",
@@ -928,8 +928,8 @@ describe("SourceCode", function() {
             eslint.verify(code, config, "", true);
         });
 
-        it("should not attach duplicate leading comments from previous node", function() {
-            var code = [
+        it("should not attach duplicate leading comments from previous node", () => {
+            const code = [
                 "//foo",
                 "var zzz /*aaa*/ = 777;",
                 "//bar"
@@ -946,58 +946,58 @@ describe("SourceCode", function() {
         });
     });
 
-    describe("getLines()", function() {
+    describe("getLines()", () => {
 
-        it("should get proper lines when using \\n as a line break", function() {
-            var code = "a;\nb;",
+        it("should get proper lines when using \\n as a line break", () => {
+            const code = "a;\nb;",
                 ast = espree.parse(code, DEFAULT_CONFIG),
                 sourceCode = new SourceCode(code, ast);
 
-            var lines = sourceCode.getLines();
+            const lines = sourceCode.getLines();
 
             assert.equal(lines[0], "a;");
             assert.equal(lines[1], "b;");
         });
 
-        it("should get proper lines when using \\r\\n as a line break", function() {
-            var code = "a;\r\nb;",
+        it("should get proper lines when using \\r\\n as a line break", () => {
+            const code = "a;\r\nb;",
                 ast = espree.parse(code, DEFAULT_CONFIG),
                 sourceCode = new SourceCode(code, ast);
 
-            var lines = sourceCode.getLines();
+            const lines = sourceCode.getLines();
 
             assert.equal(lines[0], "a;");
             assert.equal(lines[1], "b;");
         });
 
-        it("should get proper lines when using \\r as a line break", function() {
-            var code = "a;\rb;",
+        it("should get proper lines when using \\r as a line break", () => {
+            const code = "a;\rb;",
                 ast = espree.parse(code, DEFAULT_CONFIG),
                 sourceCode = new SourceCode(code, ast);
 
-            var lines = sourceCode.getLines();
+            const lines = sourceCode.getLines();
 
             assert.equal(lines[0], "a;");
             assert.equal(lines[1], "b;");
         });
 
-        it("should get proper lines when using \\u2028 as a line break", function() {
-            var code = "a;\u2028b;",
+        it("should get proper lines when using \\u2028 as a line break", () => {
+            const code = "a;\u2028b;",
                 ast = espree.parse(code, DEFAULT_CONFIG),
                 sourceCode = new SourceCode(code, ast);
 
-            var lines = sourceCode.getLines();
+            const lines = sourceCode.getLines();
 
             assert.equal(lines[0], "a;");
             assert.equal(lines[1], "b;");
         });
 
-        it("should get proper lines when using \\u2029 as a line break", function() {
-            var code = "a;\u2029b;",
+        it("should get proper lines when using \\u2029 as a line break", () => {
+            const code = "a;\u2029b;",
                 ast = espree.parse(code, DEFAULT_CONFIG),
                 sourceCode = new SourceCode(code, ast);
 
-            var lines = sourceCode.getLines();
+            const lines = sourceCode.getLines();
 
             assert.equal(lines[0], "a;");
             assert.equal(lines[1], "b;");
@@ -1005,60 +1005,60 @@ describe("SourceCode", function() {
 
     });
 
-    describe("getText()", function() {
+    describe("getText()", () => {
 
-        var sourceCode,
+        let sourceCode,
             ast;
 
-        beforeEach(function() {
+        beforeEach(() => {
             ast = espree.parse(TEST_CODE, DEFAULT_CONFIG);
             sourceCode = new SourceCode(TEST_CODE, ast);
         });
 
-        it("should retrieve all text when used without parameters", function() {
-            var text = sourceCode.getText();
+        it("should retrieve all text when used without parameters", () => {
+            const text = sourceCode.getText();
 
             assert.equal(text, TEST_CODE);
         });
 
-        it("should retrieve all text for root node", function() {
-            var text = sourceCode.getText(ast);
+        it("should retrieve all text for root node", () => {
+            const text = sourceCode.getText(ast);
 
             assert.equal(text, TEST_CODE);
         });
 
-        it("should clamp to valid range when retrieving characters before start of source", function() {
-            var text = sourceCode.getText(ast, 2, 0);
+        it("should clamp to valid range when retrieving characters before start of source", () => {
+            const text = sourceCode.getText(ast, 2, 0);
 
             assert.equal(text, TEST_CODE);
         });
 
-        it("should retrieve all text for binary expression", function() {
+        it("should retrieve all text for binary expression", () => {
 
-            var node = ast.body[0].declarations[0].init;
-            var text = sourceCode.getText(node);
+            const node = ast.body[0].declarations[0].init;
+            const text = sourceCode.getText(node);
 
             assert.equal(text, "6 * 7");
         });
 
-        it("should retrieve all text plus two characters before for binary expression", function() {
+        it("should retrieve all text plus two characters before for binary expression", () => {
 
-            var node = ast.body[0].declarations[0].init;
-            var text = sourceCode.getText(node, 2);
+            const node = ast.body[0].declarations[0].init;
+            const text = sourceCode.getText(node, 2);
 
             assert.equal(text, "= 6 * 7");
         });
 
-        it("should retrieve all text plus one character after for binary expression", function() {
-            var node = ast.body[0].declarations[0].init;
-            var text = sourceCode.getText(node, 0, 1);
+        it("should retrieve all text plus one character after for binary expression", () => {
+            const node = ast.body[0].declarations[0].init;
+            const text = sourceCode.getText(node, 0, 1);
 
             assert.equal(text, "6 * 7;");
         });
 
-        it("should retrieve all text plus two characters before and one character after for binary expression", function() {
-            var node = ast.body[0].declarations[0].init;
-            var text = sourceCode.getText(node, 2, 1);
+        it("should retrieve all text plus two characters before and one character after for binary expression", () => {
+            const node = ast.body[0].declarations[0].init;
+            const text = sourceCode.getText(node, 2, 1);
 
             assert.equal(text, "= 6 * 7;");
         });
@@ -1066,66 +1066,66 @@ describe("SourceCode", function() {
     });
 
 
-    describe("getNodeByRangeIndex()", function() {
+    describe("getNodeByRangeIndex()", () => {
 
-        var sourceCode,
-            ast;
+        let sourceCode;
 
-        beforeEach(function() {
-            ast = espree.parse(TEST_CODE, DEFAULT_CONFIG);
+        beforeEach(() => {
+            const ast = espree.parse(TEST_CODE, DEFAULT_CONFIG);
+
             sourceCode = new SourceCode(TEST_CODE, ast);
         });
 
-        it("should retrieve a node starting at the given index", function() {
-            var node = sourceCode.getNodeByRangeIndex(4);
+        it("should retrieve a node starting at the given index", () => {
+            const node = sourceCode.getNodeByRangeIndex(4);
 
             assert.equal(node.type, "Identifier");
         });
 
-        it("should retrieve a node containing the given index", function() {
-            var node = sourceCode.getNodeByRangeIndex(6);
+        it("should retrieve a node containing the given index", () => {
+            const node = sourceCode.getNodeByRangeIndex(6);
 
             assert.equal(node.type, "Identifier");
         });
 
-        it("should retrieve a node that is exactly the given index", function() {
-            var node = sourceCode.getNodeByRangeIndex(13);
+        it("should retrieve a node that is exactly the given index", () => {
+            const node = sourceCode.getNodeByRangeIndex(13);
 
             assert.equal(node.type, "Literal");
             assert.equal(node.value, 6);
         });
 
-        it("should retrieve a node ending with the given index", function() {
-            var node = sourceCode.getNodeByRangeIndex(9);
+        it("should retrieve a node ending with the given index", () => {
+            const node = sourceCode.getNodeByRangeIndex(9);
 
             assert.equal(node.type, "Identifier");
         });
 
-        it("should retrieve the deepest node containing the given index", function() {
-            var node = sourceCode.getNodeByRangeIndex(14);
+        it("should retrieve the deepest node containing the given index", () => {
+            let node = sourceCode.getNodeByRangeIndex(14);
 
             assert.equal(node.type, "BinaryExpression");
             node = sourceCode.getNodeByRangeIndex(3);
             assert.equal(node.type, "VariableDeclaration");
         });
 
-        it("should return null if the index is outside the range of any node", function() {
-            var node = sourceCode.getNodeByRangeIndex(-1);
+        it("should return null if the index is outside the range of any node", () => {
+            let node = sourceCode.getNodeByRangeIndex(-1);
 
             assert.isNull(node);
             node = sourceCode.getNodeByRangeIndex(-99);
             assert.isNull(node);
         });
 
-        it("should attach the node's parent", function() {
-            var node = sourceCode.getNodeByRangeIndex(14);
+        it("should attach the node's parent", () => {
+            const node = sourceCode.getNodeByRangeIndex(14);
 
             assert.property(node, "parent");
             assert.equal(node.parent.type, "VariableDeclarator");
         });
 
-        it("should not modify the node when attaching the parent", function() {
-            var node = sourceCode.getNodeByRangeIndex(10);
+        it("should not modify the node when attaching the parent", () => {
+            let node = sourceCode.getNodeByRangeIndex(10);
 
             assert.equal(node.type, "VariableDeclarator");
             node = sourceCode.getNodeByRangeIndex(4);
@@ -1137,7 +1137,7 @@ describe("SourceCode", function() {
 
     });
 
-    describe("isSpaceBetweenTokens()", function() {
+    describe("isSpaceBetweenTokens()", () => {
 
         leche.withData([
             ["let foo = bar;", true],
@@ -1151,10 +1151,10 @@ describe("SourceCode", function() {
             ["a/**/ /**/+b", true],
             ["a/**/\n/**/+b", true],
             ["a +b", true]
-        ], function(code, expected) {
+        ], (code, expected) => {
 
-            it("should return true when there is one space between tokens", function() {
-                var ast = espree.parse(code, DEFAULT_CONFIG),
+            it("should return true when there is one space between tokens", () => {
+                const ast = espree.parse(code, DEFAULT_CONFIG),
                     sourceCode = new SourceCode(code, ast);
 
                 assert.equal(
@@ -1169,37 +1169,159 @@ describe("SourceCode", function() {
 
     // need to check that eslint.verify() works with SourceCode
 
-    describe("eslint.verify()", function() {
+    describe("eslint.verify()", () => {
 
-        var CONFIG = {
+        const CONFIG = {
             parserOptions: { ecmaVersion: 6 }
         };
 
-        it("should work when passed a SourceCode object without a config", function() {
-            var ast = espree.parse(TEST_CODE, DEFAULT_CONFIG);
+        it("should work when passed a SourceCode object without a config", () => {
+            const ast = espree.parse(TEST_CODE, DEFAULT_CONFIG);
 
-            var sourceCode = new SourceCode(TEST_CODE, ast),
+            const sourceCode = new SourceCode(TEST_CODE, ast),
                 messages = eslint.verify(sourceCode);
 
             assert.equal(messages.length, 0);
         });
 
-        it("should work when passed a SourceCode object containing ES6 syntax and config", function() {
-            var sourceCode = new SourceCode("let foo = bar;", AST),
+        it("should work when passed a SourceCode object containing ES6 syntax and config", () => {
+            const sourceCode = new SourceCode("let foo = bar;", AST),
                 messages = eslint.verify(sourceCode, CONFIG);
 
             assert.equal(messages.length, 0);
         });
 
-        it("should report an error when using let and blockBindings is false", function() {
-            var sourceCode = new SourceCode("let foo = bar;", AST),
+        it("should report an error when using let and blockBindings is false", () => {
+            const sourceCode = new SourceCode("let foo = bar;", AST),
                 messages = eslint.verify(sourceCode, {
                     parserOptions: { ecmaVersion: 6 },
                     rules: { "no-unused-vars": 2 }
                 });
 
             assert.equal(messages.length, 1);
-            assert.equal(messages[0].message, "'foo' is defined but never used");
+            assert.equal(messages[0].message, "'foo' is assigned a value but never used.");
+        });
+    });
+
+    describe("getLocFromIndex()", () => {
+        const CODE =
+            "foo\n" +
+            "bar\r\n" +
+            "baz\r" +
+            "qux\u2028" +
+            "foo\u2029" +
+            "\n" +
+            "qux\n";
+
+        let sourceCode;
+
+        beforeEach(() => {
+            sourceCode = new SourceCode(CODE, espree.parse(CODE, DEFAULT_CONFIG));
+        });
+
+        it("should return the location of a range index", () => {
+            assert.deepEqual(sourceCode.getLocFromIndex(5), { line: 2, column: 1 });
+            assert.deepEqual(sourceCode.getLocFromIndex(3), { line: 1, column: 3 });
+            assert.deepEqual(sourceCode.getLocFromIndex(4), { line: 2, column: 0 });
+            assert.deepEqual(sourceCode.getLocFromIndex(21), { line: 6, column: 0 });
+        });
+
+        it("should throw if given a bad input", () => {
+            assert.throws(
+                () => sourceCode.getLocFromIndex({ line: 1, column: 1 }),
+                /Expected `index` to be a number\./
+            );
+        });
+
+        it("should not throw if given sourceCode.text.length", () => {
+            assert.deepEqual(sourceCode.getLocFromIndex(CODE.length), { line: 8, column: 0 });
+        });
+
+        it("should throw if given an out-of-range input", () => {
+            assert.throws(
+                () => sourceCode.getLocFromIndex(CODE.length + 1),
+                /Index out of range \(requested index 27, but source text has length 26\)\./
+            );
+        });
+
+        it("is symmetric with getIndexFromLoc()", () => {
+            for (let index = 0; index <= CODE.length; index++) {
+                assert.strictEqual(index, sourceCode.getIndexFromLoc(sourceCode.getLocFromIndex(index)));
+            }
+        });
+    });
+
+    describe("getIndexFromLoc()", () => {
+        const CODE =
+            "foo\n" +
+            "bar\r\n" +
+            "baz\r" +
+            "qux\u2028" +
+            "foo\u2029" +
+            "\n" +
+            "qux\n";
+
+        let sourceCode;
+
+        beforeEach(() => {
+            sourceCode = new SourceCode(CODE, espree.parse(CODE, DEFAULT_CONFIG));
+        });
+        it("should return the range index of a location", () => {
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 2, column: 1 }), 5);
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 1, column: 3 }), 3);
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 2, column: 0 }), 4);
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 7, column: 0 }), 22);
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 7, column: 3 }), 25);
+        });
+
+        it("should throw a useful error if given a malformed location", () => {
+            assert.throws(
+                () => sourceCode.getIndexFromLoc(5),
+                /Expected `loc` to be an object with numeric `line` and `column` properties\./
+            );
+
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: "three", column: "four" }),
+                /Expected `loc` to be an object with numeric `line` and `column` properties\./
+            );
+        });
+
+        it("should throw a useful error if `line` is out of range", () => {
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 9, column: 0 }),
+                /Line number out of range \(line 9 requested, but only 8 lines present\)\./
+            );
+
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 50, column: 3 }),
+                /Line number out of range \(line 50 requested, but only 8 lines present\)\./
+            );
+
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 0, column: 0 }),
+                /Line number out of range \(line 0 requested\)\. Line numbers should be 1-based\./
+            );
+        });
+
+        it("should throw a useful error if `column` is out of range", () => {
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 3, column: 4 }),
+                /Column number out of range \(column 4 requested, but the length of line 3 is 4\)\./
+            );
+
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 3, column: 50 }),
+                /Column number out of range \(column 50 requested, but the length of line 3 is 4\)\./
+            );
+
+            assert.throws(
+                () => sourceCode.getIndexFromLoc({ line: 8, column: 1 }),
+                /Column number out of range \(column 1 requested, but the length of line 8 is 0\)\./
+            );
+        });
+
+        it("should not throw if the location one spot past the last character is given", () => {
+            assert.strictEqual(sourceCode.getIndexFromLoc({ line: 8, column: 0 }), CODE.length);
         });
     });
 });

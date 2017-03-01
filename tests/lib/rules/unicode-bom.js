@@ -8,14 +8,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/unicode-bom"),
+const rule = require("../../../lib/rules/unicode-bom"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("unicode-bom", rule, {
 
@@ -40,6 +40,12 @@ ruleTester.run("unicode-bom", rule, {
             errors: [{ message: "Expected Unicode BOM (Byte Order Mark).", type: "Program" }],
             options: ["always"],
             output: "\uFEFFvar a = 123;"
+        },
+        {
+            code: " // here's a comment \nvar a = 123;",
+            errors: [{ message: "Expected Unicode BOM (Byte Order Mark).", type: "Program" }],
+            options: ["always"],
+            output: "\uFEFF // here's a comment \nvar a = 123;"
         },
         {
             code: "\uFEFF var a = 123;",

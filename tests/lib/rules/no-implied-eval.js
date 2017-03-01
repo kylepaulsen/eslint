@@ -9,14 +9,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-implied-eval"),
+const rule = require("../../../lib/rules/no-implied-eval"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester(),
+const ruleTester = new RuleTester(),
     expectedErrorMessage = "Implied eval. Consider passing a function instead of a string.",
     expectedError = { message: expectedErrorMessage, type: "CallExpression" };
 
@@ -53,7 +53,10 @@ ruleTester.run("no-implied-eval", rule, {
         "setTimeout(foobar, foo + 'bar')",
 
         // only checks immediate subtrees of the argument
-        "setTimeout(function() { return 'foobar'; }, 10)"
+        "setTimeout(function() { return 'foobar'; }, 10)",
+
+        // https://github.com/eslint/eslint/issues/7821
+        "setTimeoutFooBar('Foo Bar')"
     ],
 
     invalid: [

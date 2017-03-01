@@ -8,14 +8,14 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/no-whitespace-before-property"),
+const rule = require("../../../lib/rules/no-whitespace-before-property"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("no-whitespace-before-property", rule, {
 
@@ -98,7 +98,8 @@ ruleTester.run("no-whitespace-before-property", rule, {
         "foo[0][[('baz')]]",
         "foo[bar.baz('qux')]",
         "foo[(bar.baz() + 0) + qux]",
-        "foo['bar ' + 1 + ' baz']"
+        "foo['bar ' + 1 + ' baz']",
+        "5['toExponential']()"
     ],
 
     invalid: [
@@ -507,6 +508,51 @@ ruleTester.run("no-whitespace-before-property", rule, {
             code: "foo ['bar ' + 1 + ' baz']",
             output: "foo['bar ' + 1 + ' baz']",
             errors: ["Unexpected whitespace before property 'bar ' + 1 + ' baz'."]
+        },
+        {
+            code: "5 .toExponential()",
+            output: null, // This case is not fixed; can't be sure whether 5..toExponential or (5).toExponential is preferred
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5       .toExponential()",
+            output: null, // Not fixed
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5. .toExponential()",
+            output: "5..toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5.0 .toExponential()",
+            output: "5.0.toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "0x5 .toExponential()",
+            output: "0x5.toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5e0 .toExponential()",
+            output: "5e0.toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5e-0 .toExponential()",
+            output: "5e-0.toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
+        },
+        {
+            code: "5 ['toExponential']()",
+            output: "5['toExponential']()",
+            errors: ["Unexpected whitespace before property 'toExponential'."]
+        },
+        {
+            code: "05 .toExponential()",
+            output: "05.toExponential()",
+            errors: ["Unexpected whitespace before property toExponential."]
         }
     ]
 });

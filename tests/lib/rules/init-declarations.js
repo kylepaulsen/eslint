@@ -9,10 +9,10 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/init-declarations"),
+const rule = require("../../../lib/rules/init-declarations"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("init-declarations", rule, {
     valid: [
@@ -24,7 +24,7 @@ ruleTester.run("init-declarations", rule, {
         "var foo = bar = 2;",
         "for (var i = 0; i < 1; i++) {}",
         "for (var foo in []) {}",
-        {code: "for (var foo of []) {}", parserOptions: { ecmaVersion: 6 }},
+        { code: "for (var foo of []) {}", parserOptions: { ecmaVersion: 6 } },
         {
             code: "let a = true;",
             parserOptions: { ecmaVersion: 6 },

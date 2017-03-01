@@ -24,6 +24,7 @@ Examples of **incorrect** code for this rule:
 /*eslint no-regex-spaces: "error"*/
 
 var re = /foo   bar/;
+var re = new RegExp("foo   bar");
 ```
 
 Examples of **correct** code for this rule:
@@ -32,27 +33,12 @@ Examples of **correct** code for this rule:
 /*eslint no-regex-spaces: "error"*/
 
 var re = /foo {3}bar/;
-```
-
-## Known Limitations
-
-This rule does not report multiple spaces in the string argument of calls to the `RegExp` constructor.
-
-Example of a *false negative* when this rule reports correct code:
-
-```js
-/*eslint no-regex-spaces: "error"*/
-
-var re = new RegExp("foo   bar");
+var re = new RegExp("foo {3}bar");
 ```
 
 ## When Not To Use It
 
 If you want to allow multiple spaces in a regular expression, then you can safely turn this rule off.
-
-## Further Reading
-
-* [Spaces are hard to count](http://jslinterrors.com/spaces-are-hard-to-count-use-a/)
 
 ## Related Rules
 

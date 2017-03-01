@@ -9,7 +9,7 @@
 // Requirements
 //------------------------------------------------------------------------------
 
-var rule = require("../../../lib/rules/use-isnan"),
+const rule = require("../../../lib/rules/use-isnan"),
     RuleTester = require("../../../lib/testers/rule-tester");
 
 //------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ var rule = require("../../../lib/rules/use-isnan"),
 //------------------------------------------------------------------------------
 
 
-var ruleTester = new RuleTester();
+const ruleTester = new RuleTester();
 
 ruleTester.run("use-isnan", rule, {
     valid: [
@@ -38,36 +38,36 @@ ruleTester.run("use-isnan", rule, {
     ],
     invalid: [
         { code: "123 == NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "123 === NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN === \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN == \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "123 != NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "123 !== NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN !== \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN != \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN < \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "\"abc\" < NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN > \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "\"abc\" > NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN <= \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "\"abc\" <= NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "NaN >= \"abc\";",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] },
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] },
         { code: "\"abc\" >= NaN;",
-          errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression"}] }
+            errors: [{ message: "Use the isNaN function to compare with NaN.", type: "BinaryExpression" }] }
     ]
 });
